@@ -25,6 +25,8 @@ enum RemoteKey {
   rewind,
   fastForward,
   replay,
+  nextTrack,
+  previousTrack,
   search,
   input,
   backspace,
@@ -47,6 +49,8 @@ const mediaKeys = {
   RemoteKey.rewind,
   RemoteKey.fastForward,
   RemoteKey.replay,
+  RemoteKey.nextTrack,
+  RemoteKey.previousTrack,
 };
 
 /// Keys that are safe to auto-repeat while held down.

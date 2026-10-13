@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tv_remote_free/core/adapter/custom_command.dart';
 import 'package:tv_remote_free/core/adapter/smart_tv_adapter.dart';
 import 'package:tv_remote_free/core/capabilities/device_capabilities.dart';
 import 'package:tv_remote_free/core/capabilities/remote_key.dart';
@@ -548,6 +549,45 @@ void main() {
           .message(RemoteMsg.appLinkLaunch)!
           .string(1),
       'https://www.disneyplus.com/video/abc',
+    );
+    await adapter.dispose();
+  });
+
+  test('runs custom key codes and links', () async {
+    final adapter = newAdapter();
+    await pairAndConnect(adapter);
+    await adapter.sendCustom(
+      const CustomCommand(
+        id: 'a',
+        name: 'Red',
+        kind: CustomCommandKind.androidKeyCode,
+        value: '183',
+      ),
+    );
+    await adapter.sendCustom(
+      const CustomCommand(
+        id: 'b',
+        name: 'YT',
+        kind: CustomCommandKind.androidLink,
+        value: 'https://www.youtube.com',
+      ),
+    );
+    await settle();
+    expect(
+      tv
+          .sent(RemoteMsg.keyInject)
+          .last
+          .message(RemoteMsg.keyInject)!
+          .integer(1),
+      183,
+    );
+    expect(
+      tv
+          .sent(RemoteMsg.appLinkLaunch)
+          .last
+          .message(RemoteMsg.appLinkLaunch)!
+          .string(1),
+      'https://www.youtube.com',
     );
     await adapter.dispose();
   });

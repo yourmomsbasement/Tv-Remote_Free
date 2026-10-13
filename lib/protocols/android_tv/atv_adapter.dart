@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
+import '../../core/adapter/custom_command.dart';
 import '../../core/adapter/smart_tv_adapter.dart';
 import '../../core/capabilities/device_capabilities.dart';
 import '../../core/capabilities/remote_key.dart';
@@ -450,6 +451,7 @@ class AndroidTvAdapter implements SmartTVAdapter {
       activity: ime,
       appLaunch: (_features & AtvFeature.appLink) != 0,
       contentLaunch: (_features & AtvFeature.appLink) != 0,
+      customCommands: (_features & AtvFeature.key) != 0,
       pairingRequired: true,
     );
   }
@@ -578,6 +580,20 @@ class AndroidTvAdapter implements SmartTVAdapter {
   Future<bool> openContent(ContentLink link) async {
     await launchApp(link.url.toString());
     return true;
+  }
+
+  @override
+  Future<void> sendCustom(CustomCommand command) async {
+    final link = _requireRemote();
+    checkCustomCommand(command, protocol);
+    switch (command.kind) {
+      case CustomCommandKind.androidKeyCode:
+        _sendKeyCode(int.parse(command.value));
+      case CustomCommandKind.androidLink:
+        link.send(RemoteMsg.appLink(command.value));
+      default:
+        throw TvRemoteException.unsupported(command.kind.label);
+    }
   }
 
   /// App links carry no icons; the UI shows lettered tiles.

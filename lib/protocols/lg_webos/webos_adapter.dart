@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import '../../core/adapter/custom_command.dart';
 import '../../core/adapter/smart_tv_adapter.dart';
 import '../../core/capabilities/device_capabilities.dart';
 import '../../core/capabilities/remote_key.dart';
@@ -183,6 +184,7 @@ class WebOsAdapter implements SmartTVAdapter {
     activity: true,
     playbackState: true,
     contentLaunch: true,
+    customCommands: true,
     appLaunch: true,
     appList: true,
     pairingRequired: true,
@@ -673,6 +675,24 @@ class WebOsAdapter implements SmartTVAdapter {
     };
     await _request('ssap://system.launcher/launch', payload);
     return payload.length > 1;
+  }
+
+  @override
+  Future<void> sendCustom(CustomCommand command) async {
+    _requireConnected();
+    checkCustomCommand(command, protocol);
+    switch (command.kind) {
+      case CustomCommandKind.webOsRequest:
+        await _request(
+          command.value,
+          command.params.isEmpty ? null : command.params,
+        );
+      case CustomCommandKind.webOsButton:
+        final pointer = await _pointerSocket();
+        pointer.add(webOsButtonMessage(command.value));
+      default:
+        throw TvRemoteException.unsupported(command.kind.label);
+    }
   }
 
   @override

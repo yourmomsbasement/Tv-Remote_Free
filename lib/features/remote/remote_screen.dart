@@ -7,6 +7,7 @@ import '../keyboard/keyboard_panel.dart';
 import '../settings/app_settings.dart';
 import '../settings/settings_screen.dart';
 import '../touchpad/touchpad_panel.dart';
+import '../layouts/layouts_screen.dart';
 import '../macros/macros_screen.dart';
 import '../profiles/profile.dart';
 import '../profiles/profiles.dart';
@@ -61,6 +62,12 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _keyboardFocus.requestFocus();
     });
+  }
+
+  Future<void> _openLayouts(BuildContext context) async {
+    if (!await requireParent(context, ref) || !context.mounted) return;
+    await Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const LayoutsScreen()));
   }
 
   Future<void> _openSettings(BuildContext context) async {
@@ -197,6 +204,7 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen>
             onSelected: (action) => switch (action) {
               'sleep' => _showSleepTimer(context),
               'volume' => _showVolumeLimit(context),
+              'layout' => _openLayouts(context),
               'settings' => _openSettings(context),
               _ => null,
             },
@@ -207,6 +215,13 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen>
                 child: const ListTile(
                   leading: Icon(Icons.bedtime_outlined),
                   title: Text('Sleep timer'),
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'layout',
+                child: ListTile(
+                  leading: Icon(Icons.dashboard_customize_outlined),
+                  title: Text('Customize remote'),
                 ),
               ),
               PopupMenuItem(

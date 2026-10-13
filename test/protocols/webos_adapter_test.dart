@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tv_remote_free/core/adapter/custom_command.dart';
 import 'package:tv_remote_free/core/adapter/smart_tv_adapter.dart';
 import 'package:tv_remote_free/core/capabilities/device_capabilities.dart';
 import 'package:tv_remote_free/core/capabilities/remote_key.dart';
@@ -406,4 +407,30 @@ void main() {
       });
     },
   );
+
+  test('runs custom SSAP requests and buttons', () async {
+    await adapter.connect();
+    await adapter.sendCustom(
+      const CustomCommand(
+        id: 'a',
+        name: 'Ch 7',
+        kind: CustomCommandKind.webOsRequest,
+        value: 'ssap://tv/openChannel',
+        params: {'channelNumber': '7'},
+      ),
+    );
+    expect(tv.requestsTo('ssap://tv/openChannel').single['payload'], {
+      'channelNumber': '7',
+    });
+    await adapter.sendCustom(
+      const CustomCommand(
+        id: 'b',
+        name: 'Red',
+        kind: CustomCommandKind.webOsButton,
+        value: 'RED',
+      ),
+    );
+    await settle();
+    expect(tv.pointerMessages.last, 'type:button\nname:RED\n\n');
+  });
 }

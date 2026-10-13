@@ -5,6 +5,8 @@ import '../../core/capabilities/remote_key.dart';
 import '../../ui/components/dpad.dart';
 import '../../ui/components/remote_button.dart';
 import '../settings/app_settings.dart';
+import '../layouts/custom_remote_view.dart';
+import '../layouts/layout_library.dart';
 import '../profiles/profiles.dart';
 import 'now_playing_card.dart';
 import 'remote_session.dart';
@@ -35,6 +37,15 @@ class RemotePanel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // A custom layout replaces the standard remote, except on a profile's
+    // simple remote.
+    final custom = ref.watch(activeLayoutProvider);
+    if (custom != null && !ref.watch(activeProfileProvider).simplified) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: CustomRemoteView(layout: custom),
+      );
+    }
     final session = ref.watch(remoteSessionProvider);
     final settings = ref.watch(settingsProvider);
     final remote = ref.read(remoteSessionProvider.notifier);

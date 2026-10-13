@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
 
+import '../../core/adapter/custom_command.dart';
 import '../../core/adapter/smart_tv_adapter.dart';
 import '../../core/capabilities/device_capabilities.dart';
 import '../../core/capabilities/remote_key.dart';
@@ -171,6 +172,7 @@ class RokuAdapter implements SmartTVAdapter {
       playbackPosition: true,
       appLaunch: true,
       contentLaunch: true,
+      customCommands: true,
       appList: true,
     );
   }
@@ -313,6 +315,29 @@ class RokuAdapter implements SmartTVAdapter {
           : Uri(path: path, queryParameters: params).toString(),
     );
     return params != null;
+  }
+
+  @override
+  Future<void> sendCustom(CustomCommand command) async {
+    _requireConnected();
+    checkCustomCommand(command, protocol);
+    switch (command.kind) {
+      case CustomCommandKind.rokuKey:
+        await _send('POST', '/keypress/${Uri.encodeComponent(command.value)}');
+      case CustomCommandKind.rokuLaunch:
+        final path = '/launch/${Uri.encodeComponent(command.value)}';
+        await _send(
+          'POST',
+          command.params.isEmpty
+              ? path
+              : Uri(
+                  path: path,
+                  queryParameters: command.params.cast<String, String>(),
+                ).toString(),
+        );
+      default:
+        throw TvRemoteException.unsupported(command.kind.label);
+    }
   }
 
   Future<String?> _appFor(StreamingService service) async {

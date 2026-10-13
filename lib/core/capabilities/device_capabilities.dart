@@ -32,6 +32,7 @@ class DeviceCapabilities {
     this.playbackPosition = false,
     this.appLaunch = false,
     this.contentLaunch = false,
+    this.customCommands = false,
     this.appList = false,
     this.pairingRequired = false,
     this.voiceInput = false,
@@ -72,6 +73,9 @@ class DeviceCapabilities {
 
   /// Can open shared links (watchlist items), exactly or via the app.
   final bool contentLaunch;
+
+  /// Accepts user-defined commands of its protocol.
+  final bool customCommands;
   final bool appList;
   final bool pairingRequired;
   final bool voiceInput;
@@ -104,6 +108,7 @@ class DeviceCapabilities {
     'playback_position': playbackPosition,
     'app_launch': appLaunch,
     'content_launch': contentLaunch,
+    'custom_commands': customCommands,
     'app_list': appList,
     'media_controls': mediaControls,
     'channels': channels,

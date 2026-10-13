@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tv_remote_free/core/adapter/custom_command.dart';
 import 'package:tv_remote_free/core/adapter/smart_tv_adapter.dart';
 import 'package:tv_remote_free/core/capabilities/device_capabilities.dart';
 import 'package:tv_remote_free/core/capabilities/remote_key.dart';
@@ -343,4 +344,41 @@ void main() {
       );
     },
   );
+
+  test('runs custom ECP commands and refuses other TVs\' commands', () async {
+    await adapter.connect();
+    await adapter.sendCustom(
+      const CustomCommand(
+        id: 'a',
+        name: 'HDMI 2',
+        kind: CustomCommandKind.rokuKey,
+        value: 'InputHDMI2',
+      ),
+    );
+    expect(tv.posts.last, 'POST /keypress/InputHDMI2');
+    await adapter.sendCustom(
+      const CustomCommand(
+        id: 'b',
+        name: 'Show',
+        kind: CustomCommandKind.rokuLaunch,
+        value: '12',
+        params: {'contentId': '80057281', 'mediaType': 'series'},
+      ),
+    );
+    expect(
+      tv.posts.last,
+      'POST /launch/12?contentId=80057281&mediaType=series',
+    );
+    expect(
+      () => adapter.sendCustom(
+        const CustomCommand(
+          id: 'c',
+          name: 'LG',
+          kind: CustomCommandKind.webOsButton,
+          value: 'RED',
+        ),
+      ),
+      throwsA(isA<TvRemoteException>()),
+    );
+  });
 }

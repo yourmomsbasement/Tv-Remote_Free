@@ -668,4 +668,86 @@ void main() {
       await tester.runAsync(() => repo.close());
     },
   );
+
+  testWidgets('build a custom remote: add, move, save and use it', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.5;
+    addTearDown(tester.view.reset);
+    await tester.runAsync(() async {
+      repo = await openTestRepository();
+      await repo.upsertDevice(
+        const DeviceRecord(
+          id: 'fake:1',
+          name: 'Den TV',
+          protocol: 'fake',
+          ipAddress: '10.0.0.5',
+        ),
+      );
+    });
+    await pumpApp(tester);
+    Future<void> settle() async {
+      for (var i = 0; i < 6; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+        );
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+    }
+
+    await tester.tap(find.text('Den TV'));
+    await settle();
+    await tester.tap(find.byTooltip('More'));
+    await settle();
+    await tester.tap(find.text('Customize remote'));
+    await settle();
+    await tester.tap(find.text('New layout'));
+    await settle();
+
+    Future<void> addKey(String label) async {
+      await tester.tap(find.text('Add button'));
+      await settle();
+      await tester.scrollUntilVisible(
+        find.text(label),
+        100,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.tap(find.text(label));
+      await settle();
+    }
+
+    await addKey('Home');
+    await addKey('Back');
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Back'), findsOneWidget);
+    // Back sits right of Home; drag Back onto Home to put it first.
+    expect(
+      tester.getCenter(find.text('Back')).dx,
+      greaterThan(tester.getCenter(find.text('Home')).dx),
+    );
+    final drag = await tester.startGesture(tester.getCenter(find.text('Back')));
+    await tester.pump(const Duration(milliseconds: 700));
+    await drag.moveTo(tester.getCenter(find.text('Home')));
+    await tester.pump();
+    await drag.up();
+    await settle();
+    expect(
+      tester.getCenter(find.text('Back')).dx,
+      lessThan(tester.getCenter(find.text('Home')).dx),
+    );
+
+    await tester.tap(find.text('Save & use'));
+    await settle();
+    await tester.pageBack();
+    await settle();
+
+    // The remote tab now shows the custom layout.
+    expect(find.text('OK'), findsNothing); // no D-pad in this layout
+    await tester.tap(find.bySemanticsLabel('Home'));
+    await settle();
+    expect(tv.calls.last, 'key:home');
+
+    await tester.runAsync(() => repo.close());
+  });
 }

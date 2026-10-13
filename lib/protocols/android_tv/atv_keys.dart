@@ -27,6 +27,8 @@ const androidKeyCodes = <RemoteKey, int>{
   RemoteKey.channelUp: 166,
   RemoteKey.channelDown: 167,
   RemoteKey.input: 178,
+  RemoteKey.nextTrack: 87, // KEYCODE_MEDIA_NEXT
+  RemoteKey.previousTrack: 88, // KEYCODE_MEDIA_PREVIOUS
   RemoteKey.powerOff: 223, // KEYCODE_SLEEP
   RemoteKey.powerOn: 224, // KEYCODE_WAKEUP
 };

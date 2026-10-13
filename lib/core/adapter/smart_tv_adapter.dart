@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import '../capabilities/device_capabilities.dart';
 import '../content/content_link.dart';
+import 'custom_command.dart';
 import '../capabilities/remote_key.dart';
 
 /// Connection lifecycle of an adapter.
@@ -177,6 +178,10 @@ abstract class SmartTVAdapter {
   /// Opens [link] on the TV. Returns true if the TV was asked to open the
   /// exact item, false if only the service's app could be opened.
   Future<bool> openContent(ContentLink link);
+
+  /// Sends a user-defined command (see [CustomCommand]). Commands for other
+  /// TV systems, or that fail validation, are refused.
+  Future<void> sendCustom(CustomCommand command);
 
   /// Downloads the icon for [app] from the TV, or null if it has none or it
   /// cannot be fetched. Never throws.

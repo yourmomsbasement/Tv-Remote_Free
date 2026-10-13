@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:tv_remote_free/core/adapter/custom_command.dart';
 import 'package:tv_remote_free/core/adapter/smart_tv_adapter.dart';
 import 'package:tv_remote_free/core/capabilities/device_capabilities.dart';
 import 'package:tv_remote_free/core/capabilities/remote_key.dart';
@@ -112,6 +113,12 @@ class FakeAdapter implements SmartTVAdapter {
     _maybeFail();
     calls.add('open:${link.service.name}:${link.contentId}');
     return link.contentId != null;
+  }
+
+  @override
+  Future<void> sendCustom(CustomCommand command) async {
+    _maybeFail();
+    calls.add('custom:${command.value}');
   }
 
   /// Icon bytes to return per app id.

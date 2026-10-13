@@ -43,6 +43,8 @@ tested only against mock protocol servers. See the compatibility matrix.
 | Now Playing card (progress on Roku), adaptive remote (playback controls while playing, touchpad hint in browsers) | ✅ |
 | Watchlist: save links (Android share sheet or paste), open on the TV (exact on Android TV; YouTube/Netflix deep links on Roku and LG), backup/restore | ✅ |
 | Household profiles: child mode with PIN, simple remote, allowed apps, volume ceiling, viewing hours (phone-side only) | ✅ |
+| Custom remote builder: drag/resize/remove buttons (keys, D-pad, apps, macros, custom commands, now playing), Music and Minimal templates, import/export | ✅ |
+| Custom commands per TV system (ECP keys/launch, SSAP requests/buttons, Android key codes/links), validated with a block list for destructive operations | ✅ |
 | Samsung, Fire TV, Apple TV adapters | — |
 | Widgets, Quick Settings tile, IR, voice | — |
 

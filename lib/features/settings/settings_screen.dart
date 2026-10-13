@@ -6,6 +6,7 @@ import '../../app/providers.dart';
 import '../../core/storage/app_icon_cache.dart';
 import '../applications/apps_panel.dart';
 import '../keyboard/search_history.dart';
+import '../layouts/layouts_screen.dart';
 import '../profiles/profiles_screen.dart';
 import '../themes/theme_library.dart';
 import '../themes/themes_screen.dart';
@@ -36,6 +37,16 @@ class SettingsScreen extends ConsumerWidget {
               onSelectionChanged: (s) =>
                   update(settings.copyWith(themeMode: s.first)),
             ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.dashboard_customize_outlined),
+            title: const Text('Remote layout'),
+            subtitle: const Text(
+              'Build your own remote, or pick Music or Minimal',
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => const LayoutsScreen())),
           ),
           ListTile(
             leading: const Icon(Icons.family_restroom),

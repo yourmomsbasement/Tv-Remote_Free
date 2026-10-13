@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
+import '../../core/adapter/custom_command.dart';
 import '../../core/adapter/smart_tv_adapter.dart';
 import '../../core/capabilities/device_capabilities.dart';
 import '../../core/capabilities/remote_key.dart';
@@ -450,6 +451,14 @@ class RemoteSession extends Notifier<RemoteSessionState> {
     state.capabilities.pointer,
     'Pointer control',
     (a) => a.movePointer(dx, dy),
+  );
+
+  /// Sends a user-defined command (custom remote buttons).
+  Future<bool> sendCustom(CustomCommand command) => _gated(
+    state.capabilities.customCommands &&
+        command.protocol == state.device?.protocol,
+    '"${command.name}"',
+    (a) => a.sendCustom(command),
   );
 
   /// Opens a watchlist link. Returns true if the exact item was requested,
