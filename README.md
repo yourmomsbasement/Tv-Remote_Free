@@ -7,6 +7,9 @@ keyboard.
 
 The full design is in [`docs/TECHNICAL_DESIGN.md`](docs/TECHNICAL_DESIGN.md);
 what works on which TV is in [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md).
+To try it on your own TV, see [`docs/TESTING_ON_LG.md`](docs/TESTING_ON_LG.md).
+A test APK for Android is built on every push (Actions → *Build Android APK* →
+Artifacts).
 
 ## Status
 
