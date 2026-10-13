@@ -1,0 +1,23 @@
+{
+  "format": "tv-remote-free-theme",
+  "version": 1,
+  "id": "builtin.high-contrast",
+  "name": "High Contrast",
+  "author": "TV Remote Free",
+  "description": "Yellow on black with larger buttons, for low vision.",
+  "modes": ["dark"],
+  "dark": {
+    "seed": "#FFD600",
+    "background": "#000000",
+    "surface": "#000000",
+    "button": "#000000",
+    "buttonIcon": "#FFD600",
+    "accentButton": "#FFD600",
+    "accentButtonIcon": "#000000",
+    "dpadRing": "#1A1A1A",
+    "ok": "#FFD600",
+    "okText": "#000000"
+  },
+  "shape": { "button": "rounded", "cornerRadius": 8 },
+  "buttonScale": 1.15
+}

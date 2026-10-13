@@ -9,7 +9,8 @@ class DeviceRepository {
 
   final Database _db;
 
-  static const _schemaVersion = 1;
+  /// 1: devices, preferences, settings. 2: user themes.
+  static const _schemaVersion = 2;
 
   static Future<DeviceRepository> open({
     DatabaseFactory? factory,
@@ -50,11 +51,38 @@ class DeviceRepository {
               key TEXT PRIMARY KEY,
               value TEXT
             )''');
+          await _createThemes(db);
+        },
+        onUpgrade: (db, from, to) async {
+          if (from < 2) await _createThemes(db);
         },
       ),
     );
     return DeviceRepository(db);
   }
+
+  static Future<void> _createThemes(Database db) => db.execute('''
+    CREATE TABLE themes (
+      id TEXT PRIMARY KEY,
+      json TEXT NOT NULL,
+      installed_at INTEGER NOT NULL
+    )''');
+
+  /// Imported theme files, oldest first, as (id, raw JSON).
+  Future<List<(String, String)>> listThemes() async {
+    final rows = await _db.query('themes', orderBy: 'installed_at');
+    return [for (final r in rows) (r['id']! as String, r['json']! as String)];
+  }
+
+  /// Installs or replaces a theme with the same id.
+  Future<void> saveTheme(String id, String json) => _db.insert('themes', {
+    'id': id,
+    'json': json,
+    'installed_at': DateTime.now().millisecondsSinceEpoch,
+  }, conflictAlgorithm: ConflictAlgorithm.replace);
+
+  Future<void> deleteTheme(String id) =>
+      _db.delete('themes', where: 'id = ?', whereArgs: [id]);
 
   /// Favorites first, then most recently connected.
   Future<List<DeviceRecord>> listDevices() async {

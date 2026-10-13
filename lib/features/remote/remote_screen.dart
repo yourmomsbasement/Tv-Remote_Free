@@ -10,6 +10,7 @@ import '../touchpad/touchpad_panel.dart';
 import 'pin_dialog.dart';
 import 'remote_panel.dart';
 import 'remote_session.dart';
+import '../../ui/themes/remote_style.dart';
 
 class RemoteScreen extends ConsumerStatefulWidget {
   const RemoteScreen({super.key});
@@ -132,21 +133,23 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen>
           ],
         ),
       ),
-      body: Column(
-        children: [
-          _ConnectionBanner(session: session),
-          Expanded(
-            child: TabBarView(
-              controller: _tabs,
-              children: [
-                const RemotePanel(),
-                const TouchpadPanel(),
-                KeyboardPanel(focusNode: _keyboardFocus),
-                const AppsPanel(),
-              ],
+      body: _ThemedBackground(
+        child: Column(
+          children: [
+            _ConnectionBanner(session: session),
+            Expanded(
+              child: TabBarView(
+                controller: _tabs,
+                children: [
+                  const RemotePanel(),
+                  const TouchpadPanel(),
+                  KeyboardPanel(focusNode: _keyboardFocus),
+                  const AppsPanel(),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -223,5 +226,28 @@ class _ConnectionBanner extends ConsumerWidget {
       return const LinearProgressIndicator();
     }
     return const SizedBox.shrink();
+  }
+}
+
+/// Paints the active theme's background image, if it has one.
+class _ThemedBackground extends StatelessWidget {
+  const _ThemedBackground({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final background = RemoteStyle.of(context).background;
+    if (background == null) return child;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        image: DecorationImage(
+          image: MemoryImage(background.bytes),
+          fit: background.fit,
+          opacity: background.opacity,
+        ),
+      ),
+      child: child,
+    );
   }
 }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../features/devices/devices_screen.dart';
 import '../features/remote/remote_session.dart';
 import '../features/settings/app_settings.dart';
+import '../features/themes/theme_library.dart';
 import '../ui/themes/app_theme.dart';
 
 class TvRemoteApp extends ConsumerStatefulWidget {
@@ -36,12 +37,13 @@ class _TvRemoteAppState extends ConsumerState<TvRemoteApp> {
   @override
   Widget build(BuildContext context) {
     final themeMode = ref.watch(settingsProvider.select((s) => s.themeMode));
+    final theme = ref.watch(activeThemeProvider);
     return MaterialApp(
       title: 'TV Remote Free',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
-      themeMode: themeMode,
+      theme: AppTheme.light(theme),
+      darkTheme: AppTheme.dark(theme),
+      themeMode: effectiveThemeMode(themeMode, theme),
       home: const DevicesScreen(),
     );
   }

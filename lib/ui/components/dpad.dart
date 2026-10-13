@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../core/platform/haptics.dart';
+import '../../features/themes/theme_definition.dart';
+import '../themes/remote_style.dart';
 
 import '../../core/capabilities/remote_key.dart';
 import 'remote_button.dart';
@@ -22,7 +24,7 @@ class DPad extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final style = RemoteStyle.of(context);
     final button = size * 0.27;
 
     Widget arrow(RemoteKey key, IconData icon, String label) => RemoteButton(
@@ -30,6 +32,7 @@ class DPad extends StatelessWidget {
       label: label,
       size: button,
       repeat: true,
+      scaled: false,
       haptics: haptics,
       onPressed: enabled ? () => onKey(key) : null,
     );
@@ -37,10 +40,12 @@ class DPad extends StatelessWidget {
     return SizedBox.square(
       dimension: size,
       child: DecoratedBox(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: scheme.surfaceContainer,
-        ),
+        decoration: style.dpadShape == DpadShape.circle
+            ? BoxDecoration(shape: BoxShape.circle, color: style.dpadRing)
+            : BoxDecoration(
+                color: style.dpadRing,
+                borderRadius: BorderRadius.circular(style.cornerRadius * 2.5),
+              ),
         child: Stack(
           alignment: Alignment.center,
           children: [
@@ -76,7 +81,15 @@ class DPad extends StatelessWidget {
                       }
                     : null,
                 style: FilledButton.styleFrom(
-                  shape: const CircleBorder(),
+                  backgroundColor: style.ok,
+                  foregroundColor: style.okText,
+                  shape: style.dpadShape == DpadShape.circle
+                      ? const CircleBorder()
+                      : RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            style.cornerRadius,
+                          ),
+                        ),
                   fixedSize: Size.square(size * 0.36),
                 ),
                 child: const Text(

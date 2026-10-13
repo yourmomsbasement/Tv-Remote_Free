@@ -1,6 +1,5 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tv_remote_free/app/app.dart';
@@ -12,6 +11,9 @@ import 'package:tv_remote_free/core/discovery/discovery_service.dart';
 import 'package:tv_remote_free/core/security/credential_store.dart';
 import 'package:tv_remote_free/core/storage/device_record.dart';
 import 'package:tv_remote_free/core/storage/device_repository.dart';
+import 'package:tv_remote_free/features/themes/theme_definition.dart';
+import 'package:tv_remote_free/features/themes/themes_screen.dart';
+import 'package:tv_remote_free/ui/themes/remote_style.dart';
 
 import 'support/fake_adapter.dart';
 import 'support/fake_driver.dart';
@@ -269,6 +271,76 @@ void main() {
     await tester.tap(find.text('Netflix'));
     await tester.pump();
     expect(tv.calls, contains('launch:nf'));
+    await tester.runAsync(() => repo.close());
+  });
+
+  testWidgets('apply a built-in theme, then import one from the clipboard', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.5;
+    addTearDown(tester.view.reset);
+    const pasted =
+        '{"format":"tv-remote-free-theme","version":1,'
+        '"id":"user.lime","name":"Lime","colors":{"seed":"#76FF03"},'
+        '"shape":{"button":"square"}}';
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+          if (call.method == 'Clipboard.getData') return {'text': pasted};
+          return null;
+        });
+
+    await tester.runAsync(() async => repo = await openTestRepository());
+    await pumpApp(tester);
+    // Loading spinners never "settle" while real async work (SQLite, asset
+    // loading) runs outside the fake clock, so pump in fixed steps instead.
+    Future<void> settle() async {
+      for (var i = 0; i < 10; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+        );
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+    }
+
+    Future<void> waitFor(Finder finder) async {
+      for (var i = 0; i < 100 && finder.evaluate().isEmpty; i++) {
+        await settle();
+      }
+      expect(finder, findsWidgets);
+    }
+
+    RemoteStyle style() =>
+        RemoteStyle.of(tester.element(find.byType(ThemesScreen)));
+
+    await tester.tap(find.byTooltip('Settings'));
+    await settle();
+    await tester.tap(find.text('Remote theme'));
+    await settle();
+    await waitFor(find.text('Midnight OLED'));
+    expect(style().buttonShape, ButtonShape.circle);
+
+    await tester.scrollUntilVisible(find.text('Retro Remote'), 200);
+    await tester.ensureVisible(find.text('Retro Remote'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Retro Remote'));
+    await settle();
+    expect(style().buttonShape, ButtonShape.rounded);
+    expect(
+      await tester.runAsync(() => repo.getSetting('theme_id')),
+      'builtin.retro',
+    );
+
+    await tester.tap(find.byTooltip('Import theme'));
+    await settle();
+    await tester.tap(find.text('Paste from clipboard'));
+    await settle();
+    expect(find.text('Import "Lime"?'), findsOneWidget);
+    await tester.tap(find.text('Add & apply'));
+    await settle();
+    expect(style().buttonShape, ButtonShape.square);
+    expect(await tester.runAsync(() => repo.listThemes()), hasLength(1));
+
     await tester.runAsync(() => repo.close());
   });
 }

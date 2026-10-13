@@ -35,7 +35,9 @@ tested only against mock protocol servers. See the compatibility matrix.
 | Touchpad (pointer on webOS, swipe-to-arrows elsewhere) | ✅ |
 | App launcher | ✅ |
 | Wake-on-LAN power on, auto-reconnect with backoff | ✅ |
-| Haptics, left-handed layout, TalkBack/VoiceOver labels | ✅ |
+| Haptics (off/light/medium/strong; distinct tap and hold), left-handed layout, TalkBack/VoiceOver labels | ✅ |
+| App icons fetched from the TV (Roku, LG) | ✅ |
+| User themes: import/export/share JSON theme files ([format](docs/THEMES.md)) | ✅ |
 | Samsung, Fire TV, Apple TV adapters | — |
 | Widgets, Quick Settings tile, macros, IR, voice | — |
 

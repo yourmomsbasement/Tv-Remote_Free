@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:tv_remote_free/core/storage/device_record.dart';
 import 'package:tv_remote_free/core/storage/device_repository.dart';
 
@@ -71,5 +74,62 @@ void main() {
       columns.where((c) => c.contains('key') || c.contains('token')),
       isEmpty,
     );
+  });
+
+  test('stores, replaces and deletes themes', () async {
+    await repo.saveTheme('user.a', '{"v":1}');
+    await repo.saveTheme('user.b', '{"v":2}');
+    await repo.saveTheme('user.a', '{"v":3}');
+    expect(await repo.listThemes(), [
+      ('user.b', '{"v":2}'),
+      ('user.a', '{"v":3}'),
+    ]);
+    await repo.deleteTheme('user.b');
+    expect((await repo.listThemes()).map((t) => t.$1), ['user.a']);
+  });
+
+  test('upgrades a version 1 database without losing data', () async {
+    sqfliteFfiInit();
+    final dir = await Directory.systemTemp.createTemp('tvrf');
+    final path = '${dir.path}/v1.db';
+    // A database as created by the first release.
+    final v1 = await databaseFactoryFfiNoIsolate.openDatabase(
+      path,
+      options: OpenDatabaseOptions(
+        version: 1,
+        onCreate: (db, _) async {
+          await db.execute(
+            'CREATE TABLE devices (id TEXT PRIMARY KEY, '
+            'name TEXT NOT NULL, manufacturer TEXT, model TEXT, '
+            'protocol TEXT NOT NULL, ip_address TEXT, mac_address TEXT, '
+            'room TEXT, last_connected INTEGER, is_favorite INTEGER DEFAULT 0)',
+          );
+          await db.execute(
+            'CREATE TABLE remote_preferences (device_id TEXT '
+            'PRIMARY KEY, layout TEXT, haptics_enabled INTEGER, '
+            'keyboard_auto_open INTEGER)',
+          );
+          await db.execute(
+            'CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT)',
+          );
+          await db.insert('devices', {
+            'id': 'roku:1',
+            'name': 'Den',
+            'protocol': 'roku',
+          });
+        },
+      ),
+    );
+    await v1.close();
+
+    final upgraded = await DeviceRepository.open(
+      factory: databaseFactoryFfiNoIsolate,
+      path: path,
+    );
+    expect((await upgraded.getDevice('roku:1'))?.name, 'Den');
+    await upgraded.saveTheme('user.x', '{}');
+    expect(await upgraded.listThemes(), hasLength(1));
+    await upgraded.close();
+    await dir.delete(recursive: true);
   });
 }

@@ -45,6 +45,7 @@ dependencies:
   basic_utils: ^5.8.2
   crypto: ^3.0.7
   pointycastle: ^4.0.0
+  file_picker: ^13.1.0
 
 dev_dependencies:
   flutter_test:
@@ -69,6 +70,10 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Built-in remote themes (also examples of the theme format).
+  assets:
+    - assets/themes/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

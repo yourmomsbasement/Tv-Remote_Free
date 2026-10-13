@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/platform/haptics.dart';
+import '../themes/theme_library.dart';
+import '../themes/themes_screen.dart';
 import 'app_settings.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -29,6 +31,14 @@ class SettingsScreen extends ConsumerWidget {
               onSelectionChanged: (s) =>
                   update(settings.copyWith(themeMode: s.first)),
             ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.palette_outlined),
+            title: const Text('Remote theme'),
+            subtitle: Text(ref.watch(activeThemeProvider)?.name ?? 'Default'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => const ThemesScreen())),
           ),
           SwitchListTile(
             title: const Text('Left-handed layout'),

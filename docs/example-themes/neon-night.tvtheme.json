@@ -1,0 +1,34 @@
+{
+  "format": "tv-remote-free-theme",
+  "version": 1,
+  "id": "example.neon-night",
+  "name": "Neon Night",
+  "author": "Your name here",
+  "description": "Example theme with a gradient background image.",
+  "modes": [
+    "dark"
+  ],
+  "dark": {
+    "seed": "#00E5FF",
+    "background": "#120626",
+    "surface": "#1A0B33",
+    "button": "#2B1452",
+    "buttonIcon": "#E0F7FA",
+    "accentButton": "#FF2D95",
+    "accentButtonIcon": "#FFFFFF",
+    "dpadRing": "#1F0D3D",
+    "ok": "#00E5FF",
+    "okText": "#120626"
+  },
+  "shape": {
+    "button": "rounded",
+    "cornerRadius": 18,
+    "dpad": "rounded"
+  },
+  "buttonScale": 1.05,
+  "background": {
+    "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAABACAIAAAD07OL5AAABHUlEQVR42rXCBXLCAABFwVdKKcXd3WHqLlP3hEAIROj9D9JT/J1lFjOkmcYNaSYJQ5pJ0pBmnDKlGaVNaUYZU5ph1pRmkJtLM8jPpekX5tL0inNpeiVLmm7ZkqZTsaTpVC1p2vWFNK3GQppWcyFNs7WQptFeStPoLKWpd5fS1HpLaWp9W5rqwJamMrSlqYxsacrjlTSlyUqa0nQlTXG2kqZw6EhTOHKkyR870uROHGlyp2tpsmdraTLna2kyF2tp0pcbaVJXG2lS1xtpkjcbaRK3rjSJO1ea+L0rTezBlSb26Elz8ORJE332pIm+eNLsv/rSRN58aSLvvjR7H7404c9AmvBXIM3udyBN6CeQJvS7lWbH2EqDudXG+pP+BxBkid3erTsQAAAAAElFTkSuQmCC",
+    "fit": "cover",
+    "opacity": 0.85
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "format": "tv-remote-free-theme",
+  "version": 1,
+  "id": "builtin.midnight",
+  "name": "Midnight OLED",
+  "author": "TV Remote Free",
+  "description": "True black for OLED phones and dark rooms.",
+  "modes": ["dark"],
+  "dark": {
+    "seed": "#7C4DFF",
+    "background": "#000000",
+    "surface": "#0A0A0A",
+    "button": "#161616",
+    "buttonIcon": "#E0E0E0",
+    "accentButton": "#311B92",
+    "accentButtonIcon": "#FFFFFF",
+    "dpadRing": "#0F0F0F",
+    "ok": "#7C4DFF",
+    "okText": "#FFFFFF"
+  }
+}

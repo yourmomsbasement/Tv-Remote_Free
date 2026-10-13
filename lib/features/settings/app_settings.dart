@@ -11,6 +11,7 @@ class AppSettings {
     this.hapticStrength = HapticStrength.medium,
     this.keyboardAutoOpen = true,
     this.keyboardBatchMs = 40,
+    this.themeId = 'builtin.default',
   });
 
   final ThemeMode themeMode;
@@ -25,18 +26,23 @@ class AppSettings {
   /// Keystroke batching window, 20–75 ms.
   final int keyboardBatchMs;
 
+  /// The selected remote theme (see features/themes).
+  final String themeId;
+
   AppSettings copyWith({
     ThemeMode? themeMode,
     bool? leftHanded,
     HapticStrength? hapticStrength,
     bool? keyboardAutoOpen,
     int? keyboardBatchMs,
+    String? themeId,
   }) => AppSettings(
     themeMode: themeMode ?? this.themeMode,
     leftHanded: leftHanded ?? this.leftHanded,
     hapticStrength: hapticStrength ?? this.hapticStrength,
     keyboardAutoOpen: keyboardAutoOpen ?? this.keyboardAutoOpen,
     keyboardBatchMs: keyboardBatchMs ?? this.keyboardBatchMs,
+    themeId: themeId ?? this.themeId,
   );
 }
 
@@ -64,6 +70,7 @@ class AppSettingsNotifier extends AsyncNotifier<AppSettings> {
         minBatchMs,
         maxBatchMs,
       ),
+      themeId: await get('theme_id') ?? defaults.themeId,
     );
   }
 
@@ -80,6 +87,7 @@ class AppSettingsNotifier extends AsyncNotifier<AppSettings> {
     await repo.setSetting('haptic_strength', settings.hapticStrength.name);
     await repo.setSetting('keyboard_auto_open', '${settings.keyboardAutoOpen}');
     await repo.setSetting('keyboard_batch_ms', '${settings.keyboardBatchMs}');
+    await repo.setSetting('theme_id', settings.themeId);
   }
 }
 

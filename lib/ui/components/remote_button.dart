@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../core/platform/haptics.dart';
+import '../themes/remote_style.dart';
 
 /// A remote control button with haptics and optional hold-to-repeat.
 ///
@@ -20,6 +21,7 @@ class RemoteButton extends StatefulWidget {
     this.filled = false,
     this.repeatInterval = const Duration(milliseconds: 150),
     this.maxRepeats = 60,
+    this.scaled = true,
   });
 
   final IconData icon;
@@ -33,6 +35,10 @@ class RemoteButton extends StatefulWidget {
   final bool filled;
   final Duration repeatInterval;
   final int maxRepeats;
+
+  /// Apply the theme's button scale (off for buttons sized by a parent,
+  /// such as the D-pad arrows).
+  final bool scaled;
 
   @override
   State<RemoteButton> createState() => _RemoteButtonState();
@@ -90,14 +96,13 @@ class _RemoteButtonState extends State<RemoteButton> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final style = RemoteStyle.of(context);
+    final size = widget.size * (widget.scaled ? style.buttonScale : 1);
     final enabled = widget.onPressed != null;
-    final background = widget.filled
-        ? scheme.primaryContainer
-        : scheme.surfaceContainerHighest;
+    final background = widget.filled ? style.accentButton : style.button;
     final foreground = widget.filled
-        ? scheme.onPrimaryContainer
-        : scheme.onSurfaceVariant;
+        ? style.accentButtonIcon
+        : style.buttonIcon;
     return Semantics(
       button: true,
       enabled: enabled,
@@ -120,15 +125,15 @@ class _RemoteButtonState extends State<RemoteButton> {
           onPointerCancel: (_) => _stopRepeat(),
           child: Material(
             color: enabled ? background : background.withValues(alpha: 0.4),
-            shape: const CircleBorder(),
+            shape: style.buttonBorder(),
             clipBehavior: Clip.antiAlias,
             child: InkWell(
               onTap: enabled ? _onTap : null,
               child: SizedBox.square(
-                dimension: widget.size,
+                dimension: size,
                 child: Icon(
                   widget.icon,
-                  size: widget.size * 0.42,
+                  size: size * 0.42,
                   color: enabled
                       ? foreground
                       : foreground.withValues(alpha: 0.4),
