@@ -30,6 +30,8 @@ tested only against mock protocol servers. See the compatibility matrix.
 | Roku ECP adapter | ✅ (mock-tested) |
 | LG webOS adapter (pairing prompt, pointer, IME text, focus events) | ✅ (mock-tested) |
 | Android TV / Google TV adapter (PIN pairing, TLS client certs, IME text, app links) | ✅ (mock-tested) |
+| Samsung Tizen adapter (2016+: prompt + token pairing, IME text, pointer, apps and icons) | ✅ (mock-tested) |
+| Demo TV (simulated, for trying the app and store review) | ✅ |
 | mDNS discovery (Android multicast lock included) | ✅ |
 | Keyboard subsystem: diffed edits, batching, state machine, live/manual send | ✅ |
 | Touchpad: pointer on webOS, swipe-to-arrows elsewhere, two-finger scroll, adjustable sensitivity | ✅ |

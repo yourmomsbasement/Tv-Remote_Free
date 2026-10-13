@@ -3,11 +3,13 @@ import 'android_tv/atv_driver.dart';
 import 'demo/demo_driver.dart';
 import 'lg_webos/webos_driver.dart';
 import 'roku/roku_driver.dart';
+import 'samsung/samsung_driver.dart';
 
 /// Protocols supported by this build, in discovery priority order.
 List<ProtocolDriver> defaultDrivers() => [
   RokuDriver(),
   WebOsDriver(),
   AndroidTvDriver(),
+  SamsungDriver(),
   DemoDriver(),
 ];

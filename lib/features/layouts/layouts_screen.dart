@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/storage/device_record.dart';
+
 import '../../core/adapter/custom_command.dart';
 import '../../core/adapter/smart_tv_adapter.dart';
 import '../../core/capabilities/remote_key.dart';
@@ -629,6 +631,7 @@ class _CommandEditorState extends ConsumerState<CommandEditor> {
     CustomCommandKind.webOsButton => 'RED',
     CustomCommandKind.androidKeyCode => '183',
     CustomCommandKind.androidLink => 'https://www.youtube.com',
+    CustomCommandKind.samsungKey => 'KEY_HDMI2',
   };
 
   @override
@@ -653,13 +656,7 @@ class _CommandEditorState extends ConsumerState<CommandEditor> {
                 for (final k in CustomCommandKind.values)
                   DropdownMenuItem(
                     value: k,
-                    child: Text(
-                      '${switch (k.protocol) {
-                        'roku' => 'Roku',
-                        'lg_webos' => 'LG',
-                        _ => 'Android TV',
-                      }}: ${k.label}',
-                    ),
+                    child: Text('${Protocols.label(k.protocol)}: ${k.label}'),
                   ),
               ],
               onChanged: (k) => setState(() => _kind = k!),

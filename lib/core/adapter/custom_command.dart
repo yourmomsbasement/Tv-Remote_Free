@@ -20,7 +20,10 @@ enum CustomCommandKind {
   androidKeyCode('android_tv', 'Key code'),
 
   /// Android TV: an app link (https:// or a registered app scheme).
-  androidLink('android_tv', 'App link');
+  androidLink('android_tv', 'App link'),
+
+  /// Samsung Tizen: a key name (e.g. "KEY_HDMI2", "KEY_RED").
+  samsungKey('samsung', 'Key name');
 
   const CustomCommandKind(this.protocol, this.label);
 
@@ -69,6 +72,7 @@ class CustomCommand {
     r'^ssap://[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)+$',
   );
   static final _button = RegExp(r'^[A-Z0-9_]{1,32}$');
+  static final _samsungKey = RegExp(r'^KEY_[A-Z0-9_]{1,40}$');
   static final _scheme = RegExp(r'^[a-z][a-z0-9+.-]{1,30}$');
 
   /// SSAP services that install, remove, reset or re-pair; never sent.
@@ -135,6 +139,10 @@ class CustomCommand {
       case CustomCommandKind.webOsButton:
         if (!_button.hasMatch(value)) {
           return 'Use an upper-case button name such as RED.';
+        }
+      case CustomCommandKind.samsungKey:
+        if (!_samsungKey.hasMatch(value)) {
+          return 'Use a Samsung key name such as KEY_HDMI2.';
         }
       case CustomCommandKind.androidKeyCode:
         final code = int.tryParse(value);

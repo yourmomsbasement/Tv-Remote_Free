@@ -37,7 +37,7 @@ already handles and the steps only the account owner can take.
 - **Bundle ID:** `org.tvremotefree.tvRemoteFree` (change it to one you own
   before registering it, e.g. `com.<you>.tvremotefree`, in
   `project.pbxproj`).
-- **Name:** TV Remote Free. **Subtitle:** Remote for Roku, LG & Android TV.
+- **Name:** TV Remote Free. **Subtitle:** Roku, Samsung, LG, Android TV (30-character limit).
 - **Category:** Utilities. **Price:** Free. **Age rating:** 4+.
 - **Privacy policy URL:**
   https://github.com/yourmomsbasement/Tv-Remote_Free/blob/master/docs/PRIVACY.md
@@ -46,14 +46,14 @@ already handles and the steps only the account owner can take.
 - **Review notes** (paste):
 
   > This app controls smart TVs on the user's Wi-Fi network (Roku, LG
-  > webOS, Android TV / Google TV). If no TV is available, tap "Try the
+  > webOS, Samsung Tizen, Android TV / Google TV). If no TV is available, tap "Try the
   > demo TV" on the first screen: it simulates a TV so every feature
   > (remote, keyboard, touchpad, apps, watchlist, macros, profiles,
   > themes, custom remotes) can be tried. No account or login is needed.
   > The app does not connect to the internet.
 
-- **Trademarks:** describe compatibility as "works with Roku / LG webOS /
-  Android TV"; do not use their logos in the icon or as the app name
+- **Trademarks:** describe compatibility as "works with Roku / Samsung / LG
+  webOS / Android TV"; do not use their logos in the icon or as the app name
   (guideline 5.2).
 
 ## Google Play

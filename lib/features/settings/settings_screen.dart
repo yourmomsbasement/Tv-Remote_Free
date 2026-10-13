@@ -195,7 +195,8 @@ class SettingsScreen extends ConsumerWidget {
             applicationLegalese:
                 'Free and open source under the Apache License 2.0. No ads, '
                 'no tracking, no accounts. Works only on your local network.\n\n'
-                'Roku, LG, webOS, Android TV and Google TV are trademarks of their '
+                'Roku, LG, webOS, Samsung, Tizen, Android TV and Google TV are '
+                'trademarks of their '
                 'respective owners. '
                 'This app is not affiliated with or endorsed by them.',
           ),
