@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  TVs are addressed by LAN IP and several protocols (Roku ECP, webOS port 3000)
+  are plain HTTP/WebSocket only. Android cannot scope cleartext to private IP
+  ranges, so it is allowed app-wide; the app makes no internet requests.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
