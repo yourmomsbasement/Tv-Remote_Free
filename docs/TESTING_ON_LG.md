@@ -60,20 +60,46 @@ page.
    Or `flutter build apk --release` and install
    `build/app/outputs/flutter-apk/app-release.apk`.
 
-### Option C — iPhone
+### Option C — iPhone from Windows (no Mac)
 
-This needs a Mac with Xcode. A free Apple ID works, but the app stops
-launching after 7 days until you reinstall it.
+GitHub builds an unsigned iPhone app (`.ipa`) on a Mac runner. You sign
+and install it from Windows with your normal Apple ID.
 
-1. Install Flutter and Xcode, then run `cd ios && pod install`.
+1. On GitHub: **Actions** → **Build iOS IPA (unsigned)** → the latest green
+   run → under **Artifacts**, download **tv-remote-free-ipa** and unzip it
+   to get `tv-remote-free-unsigned.ipa`. To build without pushing code, use
+   **Run workflow**.
+2. On Windows, install **iTunes** and **iCloud** from Apple's website (not
+   the Microsoft Store versions; Sideloadly needs the drivers they bring),
+   then install [Sideloadly](https://sideloadly.io).
+3. Connect the iPhone by USB, unlock it, and tap **Trust** on the phone.
+4. In Sideloadly, choose the `.ipa`, enter your Apple ID, and click
+   **Start**. If it complains that the bundle ID is taken, enable
+   *Advanced options → Change bundle ID* and pick something unique.
+5. On the iPhone:
+   - **iOS 16 and later:** turn on Settings → Privacy & Security →
+     **Developer Mode**, then restart when asked.
+   - Then go to Settings → General → **VPN & Device Management**, tap your
+     Apple ID, and choose **Trust**.
+6. Open the app. When iOS asks for **Local Network** access, allow it.
+
+Limits of a free Apple ID:
+- The app stops opening after **7 days**. Re-run Sideloadly to refresh it,
+  or use [AltStore](https://altstore.io) instead, which can refresh it over
+  Wi-Fi while AltServer runs on your PC.
+- At most **3** sideloaded apps at a time.
+- **Automatic discovery doesn't work** on iPhone without Apple's multicast
+  entitlement (paid developer account), so use **Add by IP**.
+
+### Option D — iPhone with a Mac
+
+1. Install Flutter and Xcode.
 2. Open `ios/Runner.xcworkspace` in Xcode → Runner target → Signing &
    Capabilities → choose your team, and change the bundle identifier to
    something unique.
 3. Connect the iPhone, then run `flutter run --release`. On the phone,
    trust the developer under Settings → General → VPN & Device Management.
-4. **Automatic discovery won't work on iPhone** without Apple's multicast
-   entitlement, so use **Add by IP**. When iOS asks for *Local Network*
-   access, allow it.
+   The same 7-day limit and *Add by IP* note apply.
 
 ## 3. Connect and pair
 
