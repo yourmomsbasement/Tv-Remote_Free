@@ -131,9 +131,11 @@ class RemotePanel extends ConsumerWidget {
                 Semantics(
                   label: 'Volume',
                   child: Slider(
-                    value: session.volume!.clamp(0, 100).toDouble(),
-                    max: 100,
-                    divisions: 100,
+                    value: session.volume!
+                        .clamp(0, session.volumeLimit ?? 100)
+                        .toDouble(),
+                    max: (session.volumeLimit ?? 100).toDouble(),
+                    divisions: session.volumeLimit ?? 100,
                     label: '${session.volume}',
                     onChanged: connected
                         ? (v) => remote.setVolume(v.round())

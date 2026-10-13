@@ -129,6 +129,8 @@ void main() {
     expect((await upgraded.getDevice('roku:1'))?.name, 'Den');
     await upgraded.saveTheme('user.x', '{}');
     expect(await upgraded.listThemes(), hasLength(1));
+    await upgraded.saveMacro('m', '{}');
+    expect(await upgraded.listMacros(), [('m', '{}')]);
     await upgraded.close();
     await dir.delete(recursive: true);
   });

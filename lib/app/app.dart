@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/devices/devices_screen.dart';
 import '../features/remote/remote_session.dart';
+import '../features/remote/sleep_timer.dart';
 import '../features/settings/app_settings.dart';
 import '../features/themes/theme_library.dart';
 import '../ui/themes/app_theme.dart';
@@ -23,7 +24,11 @@ class _TvRemoteAppState extends ConsumerState<TvRemoteApp> {
     // Drop TV connections in the background to save battery; restore them
     // when the app returns.
     _lifecycle = AppLifecycleListener(
-      onPause: () => ref.read(remoteSessionProvider.notifier).suspend(),
+      onPause: () {
+        // A running sleep timer needs the connection to switch the TV off.
+        if (ref.read(sleepTimerProvider).active) return;
+        ref.read(remoteSessionProvider.notifier).suspend();
+      },
       onResume: () => ref.read(remoteSessionProvider.notifier).resume(),
     );
   }

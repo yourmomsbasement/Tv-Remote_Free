@@ -248,8 +248,12 @@ class RokuAdapter implements SmartTVAdapter {
   static List<TvApp> parseApps(String xmlText) => XmlDocument.parse(xmlText)
       .findAllElements('app')
       .where((e) => e.getAttribute('id') != null)
-      // Skip TV inputs and the live TV tuner; they are not launchable apps.
-      .where((e) => (e.getAttribute('type') ?? 'appl') == 'appl')
+      // Apps and, on Roku TVs, inputs such as HDMI 1 (launching one switches
+      // to it). Other entries (e.g. menus) are not launchable.
+      .where(
+        (e) =>
+            const {'appl', 'tvin'}.contains(e.getAttribute('type') ?? 'appl'),
+      )
       .map((e) => TvApp(id: e.getAttribute('id')!, name: e.innerText.trim()))
       .toList();
 

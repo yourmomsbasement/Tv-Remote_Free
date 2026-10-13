@@ -28,6 +28,7 @@ const appsXml = '''
   <app id="tvinput.hdmi1" type="tvin" version="1.0.0">HDMI 1</app>
   <app id="12" type="appl" version="5.1.0">Netflix</app>
   <app id="837" type="appl" version="2.21.0">YouTube</app>
+  <app id="menu.x" type="menu" version="1.0">Not launchable</app>
 </apps>''';
 
 /// A minimal ECP server that records requests.
@@ -150,8 +151,8 @@ void main() {
   test('lists launchable apps only and launches by id', () async {
     await adapter.connect();
     final apps = await adapter.listApps();
-    expect(apps.map((a) => a.name), ['Netflix', 'YouTube']);
-    expect(apps.first.iconUrl, endsWith('/query/icon/12'));
+    expect(apps.map((a) => a.name), ['HDMI 1', 'Netflix', 'YouTube']);
+    expect(apps[1].iconUrl, endsWith('/query/icon/12'));
     await adapter.launchApp('837');
     expect(tv.posts.last, 'POST /launch/837');
   });

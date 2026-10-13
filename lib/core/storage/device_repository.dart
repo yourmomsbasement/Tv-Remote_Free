@@ -9,8 +9,8 @@ class DeviceRepository {
 
   final Database _db;
 
-  /// 1: devices, preferences, settings. 2: user themes.
-  static const _schemaVersion = 2;
+  /// 1: devices, preferences, settings. 2: user themes. 3: macros.
+  static const _schemaVersion = 3;
 
   static Future<DeviceRepository> open({
     DatabaseFactory? factory,
@@ -52,9 +52,11 @@ class DeviceRepository {
               value TEXT
             )''');
           await _createThemes(db);
+          await _createMacros(db);
         },
         onUpgrade: (db, from, to) async {
           if (from < 2) await _createThemes(db);
+          if (from < 3) await _createMacros(db);
         },
       ),
     );
@@ -67,6 +69,40 @@ class DeviceRepository {
       json TEXT NOT NULL,
       installed_at INTEGER NOT NULL
     )''');
+
+  static Future<void> _createMacros(Database db) => db.execute('''
+    CREATE TABLE macros (
+      id TEXT PRIMARY KEY,
+      json TEXT NOT NULL,
+      created_at INTEGER NOT NULL
+    )''');
+
+  /// Saved macros, oldest first, as (id, JSON).
+  Future<List<(String, String)>> listMacros() async {
+    final rows = await _db.query('macros', orderBy: 'created_at');
+    return [for (final r in rows) (r['id']! as String, r['json']! as String)];
+  }
+
+  /// Inserts or updates a macro, keeping its original position.
+  Future<void> saveMacro(String id, String json) =>
+      _db.transaction((txn) async {
+        final updated = await txn.update(
+          'macros',
+          {'json': json},
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+        if (updated == 0) {
+          await txn.insert('macros', {
+            'id': id,
+            'json': json,
+            'created_at': DateTime.now().microsecondsSinceEpoch,
+          });
+        }
+      });
+
+  Future<void> deleteMacro(String id) =>
+      _db.delete('macros', where: 'id = ?', whereArgs: [id]);
 
   /// Imported theme files, oldest first, as (id, raw JSON).
   Future<List<(String, String)>> listThemes() async {

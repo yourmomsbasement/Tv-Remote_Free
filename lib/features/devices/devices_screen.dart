@@ -343,6 +343,7 @@ class _AddByIpDialogState extends ConsumerState<_AddByIpDialog> {
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String?>(
+            isExpanded: true,
             initialValue: _protocol,
             decoration: const InputDecoration(labelText: 'TV type'),
             items: [

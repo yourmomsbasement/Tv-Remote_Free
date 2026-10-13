@@ -26,6 +26,7 @@ class RemoteSessionState {
     this.volume,
     this.muted,
     this.textFieldFocused = false,
+    this.volumeLimit,
   });
 
   final DeviceRecord? device;
@@ -40,6 +41,15 @@ class RemoteSessionState {
   final int? volume;
   final bool? muted;
   final bool textFieldFocused;
+
+  /// Highest volume allowed for this TV, or null for no limit.
+  final int? volumeLimit;
+
+  /// A limit needs a TV that reports its volume.
+  bool get canLimitVolume => capabilities.volumeSet || volume != null;
+
+  bool get atVolumeLimit =>
+      volumeLimit != null && volume != null && volume! >= volumeLimit!;
 
   bool get isConnected => status == ConnectionStatus.connected;
 
@@ -59,6 +69,7 @@ class RemoteSessionState {
     int? volume,
     bool? muted,
     bool? textFieldFocused,
+    int? Function()? volumeLimit,
   }) => RemoteSessionState(
     device: device ?? this.device,
     status: status ?? this.status,
@@ -70,6 +81,7 @@ class RemoteSessionState {
     volume: volume ?? this.volume,
     muted: muted ?? this.muted,
     textFieldFocused: textFieldFocused ?? this.textFieldFocused,
+    volumeLimit: volumeLimit == null ? this.volumeLimit : volumeLimit(),
   );
 }
 
@@ -142,6 +154,7 @@ class RemoteSession extends Notifier<RemoteSessionState> {
         reconnecting: false,
         error: () => null,
       );
+      await _loadVolumeLimit(device.id);
       await _saveDevice(state.device!.copyWith(lastConnected: DateTime.now()));
     } on TvRemoteException catch (e) {
       if (!identical(adapter, _adapter)) return;
@@ -185,6 +198,7 @@ class RemoteSession extends Notifier<RemoteSessionState> {
         state = state.copyWith(textFieldFocused: event.focused);
       case VolumeChanged(:final level, :final muted):
         state = state.copyWith(volume: level, muted: muted);
+        _enforceVolumeLimit();
       case ConnectionStatusChanged(:final status):
         if (status == ConnectionStatus.disconnected &&
             state.status == ConnectionStatus.connected) {
@@ -315,17 +329,64 @@ class RemoteSession extends Notifier<RemoteSessionState> {
     return _run(command);
   }
 
-  Future<bool> sendKey(RemoteKey key) => _gated(
-    state.capabilities.supportsKey(key),
-    'The ${key.name} key',
-    (a) => a.sendKey(key),
-  );
+  Future<bool> sendKey(RemoteKey key) {
+    if (key == RemoteKey.volumeUp && state.atVolumeLimit) {
+      state = state.copyWith(
+        error: () => TvRemoteException(
+          TvErrorCode.forbidden,
+          'Volume limit (${state.volumeLimit}) reached',
+        ),
+      );
+      return Future.value(false);
+    }
+    return _gated(
+      state.capabilities.supportsKey(key),
+      'The ${key.name} key',
+      (a) => a.sendKey(key),
+    );
+  }
 
   Future<bool> setVolume(int level) => _gated(
     state.capabilities.volumeSet,
     'Setting the volume',
-    (a) => a.setVolume(level),
+    (a) => a.setVolume(
+      state.volumeLimit == null ? level : level.clamp(0, state.volumeLimit!),
+    ),
   );
+
+  static String _volumeLimitKey(String deviceId) => 'volume_limit.$deviceId';
+
+  Future<void> _loadVolumeLimit(String deviceId) async {
+    final raw = await ref
+        .read(deviceRepositoryProvider)
+        .getSetting(_volumeLimitKey(deviceId));
+    final limit = int.tryParse(raw ?? '');
+    state = state.copyWith(volumeLimit: () => limit);
+    _enforceVolumeLimit();
+  }
+
+  /// Sets (or with null, removes) the volume limit for the current TV.
+  Future<void> setVolumeLimit(int? limit) async {
+    final id = state.device?.id;
+    if (id == null) return;
+    final clamped = limit?.clamp(1, 100);
+    state = state.copyWith(volumeLimit: () => clamped);
+    await ref
+        .read(deviceRepositoryProvider)
+        .setSetting(_volumeLimitKey(id), clamped?.toString() ?? '');
+    _enforceVolumeLimit();
+  }
+
+  /// Turns the TV back down if it goes over the limit (e.g. using the TV's
+  /// own remote), on TVs where the volume can be set.
+  void _enforceVolumeLimit() {
+    final limit = state.volumeLimit;
+    final volume = state.volume;
+    if (limit == null || volume == null || volume <= limit) return;
+    if (state.isConnected && state.capabilities.volumeSet) {
+      unawaited(setVolume(limit));
+    }
+  }
 
   Future<bool> launchApp(String appId) => _gated(
     state.capabilities.appLaunch,
@@ -351,6 +412,13 @@ class RemoteSession extends Notifier<RemoteSessionState> {
     'Pointer control',
     (a) => a.movePointer(dx, dy),
   );
+
+  /// Types [text] into the focused TV field, optionally pressing Enter.
+  Future<bool> typeText(String text, {bool submit = false}) =>
+      _gated(state.capabilities.textInput, 'Keyboard input', (a) async {
+        if (text.isNotEmpty) await a.sendText(text);
+        if (submit) await a.submitText();
+      });
 
   Future<bool> scroll(double dx, double dy) =>
       _gated(state.capabilities.scroll, 'Scrolling', (a) => a.scroll(dx, dy));

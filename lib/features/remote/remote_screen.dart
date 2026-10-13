@@ -7,7 +7,9 @@ import '../keyboard/keyboard_panel.dart';
 import '../settings/app_settings.dart';
 import '../settings/settings_screen.dart';
 import '../touchpad/touchpad_panel.dart';
+import '../macros/macros_screen.dart';
 import 'pin_dialog.dart';
+import 'sleep_timer.dart';
 import 'remote_panel.dart';
 import 'remote_session.dart';
 import '../../ui/themes/remote_style.dart';
@@ -55,6 +57,55 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _keyboardFocus.requestFocus();
     });
+  }
+
+  Future<void> _showSleepTimer(BuildContext context) async {
+    final timer = ref.read(sleepTimerProvider.notifier);
+    final active = ref.read(sleepTimerProvider).active;
+    final minutes = await showDialog<int>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Turn the TV off in…'),
+        children: [
+          for (final m in const [15, 30, 45, 60, 90, 120])
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, m),
+              child: Text(
+                m < 60
+                    ? '$m minutes'
+                    : '${m ~/ 60} hour${m >= 120 ? 's' : ''}'
+                          '${m % 60 == 0 ? '' : ' ${m % 60} min'}',
+              ),
+            ),
+          if (active)
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, 0),
+              child: const Text('Cancel the timer'),
+            ),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(24, 8, 24, 0),
+            child: Text(
+              'Keep the app open (it can be in the background). Phones may '
+              'stop background apps, which cancels the timer.',
+              style: TextStyle(fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (minutes == null) return;
+    minutes == 0 ? timer.cancel() : timer.start(Duration(minutes: minutes));
+  }
+
+  Future<void> _showVolumeLimit(BuildContext context) async {
+    final current = ref.read(remoteSessionProvider).volumeLimit;
+    final result = await showDialog<(int?,)>(
+      context: context,
+      builder: (_) => _VolumeLimitDialog(initial: current),
+    );
+    if (result != null) {
+      await ref.read(remoteSessionProvider.notifier).setVolumeLimit(result.$1);
+    }
   }
 
   @override
@@ -116,11 +167,46 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen>
               onPressed: _openKeyboard,
             ),
           IconButton(
-            tooltip: 'Settings',
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+            tooltip: 'Macros',
+            icon: const Icon(Icons.auto_awesome_outlined),
+            onPressed: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => const MacrosScreen())),
+          ),
+          PopupMenuButton<String>(
+            tooltip: 'More',
+            onSelected: (action) => switch (action) {
+              'sleep' => _showSleepTimer(context),
+              'volume' => _showVolumeLimit(context),
+              'settings' => Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+              _ => null,
+            },
+            itemBuilder: (_) => [
+              PopupMenuItem(
+                value: 'sleep',
+                enabled: session.isConnected && SleepTimer.supported(session),
+                child: const ListTile(
+                  leading: Icon(Icons.bedtime_outlined),
+                  title: Text('Sleep timer'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'volume',
+                enabled: session.isConnected && session.canLimitVolume,
+                child: const ListTile(
+                  leading: Icon(Icons.volume_down_alt),
+                  title: Text('Volume limit'),
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'settings',
+                child: ListTile(
+                  leading: Icon(Icons.settings_outlined),
+                  title: Text('Settings'),
+                ),
+              ),
+            ],
           ),
         ],
         bottom: TabBar(
@@ -137,6 +223,7 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen>
         child: Column(
           children: [
             _ConnectionBanner(session: session),
+            const _SleepTimerBar(),
             Expanded(
               child: TabBarView(
                 controller: _tabs,
@@ -250,4 +337,92 @@ class _ThemedBackground extends StatelessWidget {
       child: child,
     );
   }
+}
+
+/// Countdown shown while a sleep timer runs.
+class _SleepTimerBar extends ConsumerWidget {
+  const _SleepTimerBar();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final timer = ref.watch(sleepTimerProvider);
+    if (!timer.active) return const SizedBox.shrink();
+    return StreamBuilder<void>(
+      stream: Stream<void>.periodic(const Duration(seconds: 15)),
+      builder: (context, _) {
+        final left = timer.remaining();
+        final minutes = (left.inSeconds / 60).ceil();
+        return Material(
+          color: Theme.of(context).colorScheme.secondaryContainer,
+          child: ListTile(
+            dense: true,
+            leading: const Icon(Icons.bedtime_outlined),
+            title: Text('TV turns off in $minutes min'),
+            trailing: TextButton(
+              onPressed: () => ref.read(sleepTimerProvider.notifier).cancel(),
+              child: const Text('Cancel'),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _VolumeLimitDialog extends StatefulWidget {
+  const _VolumeLimitDialog({this.initial});
+
+  final int? initial;
+
+  @override
+  State<_VolumeLimitDialog> createState() => _VolumeLimitDialogState();
+}
+
+class _VolumeLimitDialogState extends State<_VolumeLimitDialog> {
+  late bool _enabled = widget.initial != null;
+  late double _limit = (widget.initial ?? 30).toDouble();
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Volume limit'),
+    content: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Limit the volume'),
+          value: _enabled,
+          onChanged: (v) => setState(() => _enabled = v),
+        ),
+        Slider(
+          value: _limit,
+          min: 1,
+          max: 100,
+          divisions: 99,
+          label: '${_limit.round()}',
+          onChanged: _enabled ? (v) => setState(() => _limit = v) : null,
+        ),
+        Text(
+          _enabled
+              ? 'The phone will not raise the volume above '
+                    '${_limit.round()}. If this TV lets the app set the '
+                    'volume, it is also turned back down when raised with '
+                    'the TV\'s own remote while the app is connected.'
+              : 'No limit.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ],
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        onPressed: () =>
+            Navigator.pop(context, (_enabled ? _limit.round() : null,)),
+        child: const Text('Save'),
+      ),
+    ],
+  );
 }

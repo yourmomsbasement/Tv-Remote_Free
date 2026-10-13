@@ -392,4 +392,68 @@ void main() {
 
     await tester.runAsync(() => repo.close());
   });
+
+  testWidgets('create a macro from the example, save it and run it', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.5;
+    addTearDown(tester.view.reset);
+    await tester.runAsync(() async {
+      repo = await openTestRepository();
+      await repo.upsertDevice(
+        const DeviceRecord(
+          id: 'fake:1',
+          name: 'Den TV',
+          protocol: 'fake',
+          ipAddress: '10.0.0.5',
+        ),
+      );
+    });
+    await pumpApp(tester);
+    Future<void> settle() async {
+      for (var i = 0; i < 6; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+        );
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+    }
+
+    await tester.tap(find.text('Den TV'));
+    await settle();
+    await tester.tap(find.byTooltip('Macros'));
+    await settle();
+    await tester.tap(find.text('Start from "Movie night"'));
+    await settle();
+    expect(find.text('1. Turn on the TV'), findsOneWidget);
+    // This TV cannot set the volume, so the editor warns up front.
+    expect(find.textContaining('Will be skipped'), findsWidgets);
+
+    // Add a step: press Home.
+    await tester.tap(find.text('Add step'));
+    await settle();
+    await tester.tap(find.text('Press a button'));
+    await settle();
+    await tester.tap(find.text('OK'));
+    await settle();
+    expect(find.text('6. Press Home'), findsOneWidget);
+
+    await tester.tap(find.text('Save'));
+    await settle();
+    expect(find.text('Movie night'), findsOneWidget);
+    expect(await tester.runAsync(() => repo.listMacros()), hasLength(1));
+
+    await tester.tap(find.byTooltip('Run Movie night'));
+    for (var i = 0; i < 60; i++) {
+      await settle();
+      if (find.text('Close').evaluate().isNotEmpty) break;
+    }
+    expect(find.text('Close'), findsOneWidget);
+    expect(tv.calls, contains('key:home'));
+    await tester.tap(find.text('Close'));
+    await settle();
+
+    await tester.runAsync(() => repo.close());
+  });
 }

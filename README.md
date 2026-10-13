@@ -39,8 +39,9 @@ tested only against mock protocol servers. See the compatibility matrix.
 | Haptics (off/light/medium/strong; distinct tap and hold), left-handed layout, TalkBack/VoiceOver labels | ✅ |
 | App icons fetched from the TV (Roku, LG) | ✅ |
 | User themes: import/export/share JSON theme files ([format](docs/THEMES.md)) | ✅ |
+| Macros (power on, wait, keys, apps/inputs, volume, delays, text) with per-TV capability checks; sleep timer; per-TV volume limit | ✅ |
 | Samsung, Fire TV, Apple TV adapters | — |
-| Widgets, Quick Settings tile, macros, IR, voice | — |
+| Widgets, Quick Settings tile, IR, voice | — |
 
 ## Architecture
 
