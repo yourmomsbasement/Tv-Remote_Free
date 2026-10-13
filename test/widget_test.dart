@@ -750,4 +750,39 @@ void main() {
 
     await tester.runAsync(() => repo.close());
   });
+
+  testWidgets('a TV with every key fits a narrow phone without overflow', (
+    tester,
+  ) async {
+    tester.view
+      ..physicalSize = const Size(320 * 3, 640 * 3)
+      ..devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    tv = FakeAdapter(); // supports every key
+    await tester.runAsync(() async {
+      repo = await openTestRepository();
+      await repo.upsertDevice(
+        const DeviceRecord(
+          id: 'fake:1',
+          name: 'Bedroom TV',
+          protocol: 'fake',
+          ipAddress: '10.0.0.5',
+        ),
+      );
+    });
+    await pumpApp(tester);
+    await tester.tap(find.text('Bedroom TV'));
+    for (var i = 0; i < 5; i++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 20)),
+      );
+      await tester.pumpAndSettle();
+    }
+    // Scroll to the media and volume rows; an overflow fails the test.
+    await tester.drag(find.text('OK'), const Offset(0, -400));
+    await tester.pumpAndSettle();
+    expect(find.bySemanticsLabel('Fast forward'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.runAsync(() => repo.close());
+  });
 }

@@ -242,7 +242,8 @@ class DemoAdapter implements SmartTVAdapter {
       appId == 'demo.browser' || appId == 'demo.photos'
           ? PlaybackState.stopped
           : PlaybackState.playing,
-      position: Duration.zero,
+      // As if resuming something part-watched.
+      position: const Duration(minutes: 17, seconds: 32),
     );
   }
 

@@ -80,7 +80,13 @@ class RemotePanel extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: ordered,
+          // A TV with every media key fills a row; shrink rather than clip.
+          children: [
+            for (final child in ordered)
+              Flexible(
+                child: FittedBox(fit: BoxFit.scaleDown, child: child),
+              ),
+          ],
         ),
       );
     }

@@ -17,27 +17,32 @@ already handles and the steps only the account owner can take.
 | Release signing for Play (upload key from CI secrets) | `android/app/build.gradle.kts`, `.github/workflows/release-android.yml` |
 | Target SDK 36, no backup of pairing keys | Flutter defaults, `AndroidManifest.xml` |
 | No ads, purchases, accounts or analytics | – |
+| No permission prompts beyond local network (file import uses the system pickers) | – |
+| Remote rows shrink to fit narrow phones (found while making screenshots) | `remote_panel.dart` |
+| Store screenshots, feature graphic, listing text | `store/`, `store/LISTING.md` |
+| Signed App Store upload without a Mac | `.github/workflows/release-ios.yml` |
 
 ## Things only you can do
 
 1. **Apple Developer Program** ($99/year) — needed for App Store and
-   TestFlight. Requires a Mac or a cloud Mac (e.g. GitHub's macOS runner,
-   Codemagic) to sign and upload.
+   TestFlight. No Mac needed: the *Release iOS to App Store Connect*
+   workflow signs and uploads from GitHub's macOS runner (see below).
 2. **Google Play Console** ($25 once).
 3. **Multicast entitlement** (iOS, optional): Android TV discovery uses
    mDNS, which works without it via Bonjour. SSDP discovery of Roku/LG on
    iOS 14+ needs `com.apple.developer.networking.multicast`, requested at
    https://developer.apple.com/contact/request/networking-multicast. Until
    granted, iPhone users can add those TVs by IP address.
-4. **Screenshots** from a real device (or the demo TV): iPhone 6.9" (1320 ×
-   2868) and Android phone. Do not show other companies' logos prominently.
+4. **Screenshots** are ready in `store/` (the real app on the demo TV).
+   Regenerate them after UI changes; see `store/LISTING.md`.
 
 ## App Store Connect
 
 - **Bundle ID:** `org.tvremotefree.tvRemoteFree` (change it to one you own
   before registering it, e.g. `com.<you>.tvremotefree`, in
   `project.pbxproj`).
-- **Name:** TV Remote Free. **Subtitle:** Roku, Samsung, LG, Android TV (30-character limit).
+- **Listing text:** copy from `store/LISTING.md` (name, subtitle,
+  promotional text, keywords, description, URLs).
 - **Category:** Utilities. **Price:** Free. **Age rating:** 4+.
 - **Privacy policy URL:**
   https://github.com/yourmomsbasement/Tv-Remote_Free/blob/master/docs/PRIVACY.md
@@ -55,6 +60,25 @@ already handles and the steps only the account owner can take.
 - **Trademarks:** describe compatibility as "works with Roku / Samsung / LG
   webOS / Android TV"; do not use their logos in the icon or as the app name
   (guideline 5.2).
+
+### Uploading from GitHub (no Mac)
+
+1. In App Store Connect, create the app record with your bundle ID
+   (register it first under Certificates, Identifiers & Profiles).
+2. Users and Access → Integrations → App Store Connect API → generate a
+   key with the **Admin** role (needed for cloud-managed signing). Note the
+   Key ID and Issuer ID and download the `.p8` once.
+3. Add repository secrets: `APP_STORE_CONNECT_KEY_ID`,
+   `APP_STORE_CONNECT_ISSUER_ID`, `APP_STORE_CONNECT_KEY_BASE64`
+   (`base64 -w0 AuthKey_XXXX.p8`), and `APPLE_TEAM_ID` (Membership page).
+4. Actions → **Release iOS to App Store Connect** → Run. The build number
+   is the run number; bump `version:` in `pubspec.yaml` for each new
+   release. The build appears in TestFlight after Apple's processing
+   (10–30 minutes); then submit it for review.
+
+Apple requires uploads built with the current Xcode SDK; the workflow picks
+the newest Xcode on the runner and prints its version. This workflow hasn't
+been run against a real account yet, so expect to check the first run's log.
 
 ## Google Play
 
