@@ -3,7 +3,7 @@
   "version": 1,
   "id": "builtin.midnight",
   "name": "Midnight OLED",
-  "author": "TV Remote Free",
+  "author": "OpenRemote",
   "description": "True black for OLED phones and dark rooms.",
   "modes": ["dark"],
   "dark": {

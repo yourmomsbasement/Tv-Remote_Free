@@ -191,7 +191,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const AboutListTile(
             icon: Icon(Icons.info_outline),
-            applicationName: 'TV Remote Free',
+            applicationName: 'OpenRemote',
             applicationLegalese:
                 'Free and open source under the Apache License 2.0. No ads, '
                 'no tracking, no accounts. Works only on your local network.\n\n'

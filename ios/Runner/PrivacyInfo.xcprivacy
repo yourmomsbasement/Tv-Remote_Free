@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  App privacy manifest. TV Remote Free does not track users and collects no
+  App privacy manifest. OpenRemote does not track users and collects no
   data: it talks only to TVs on the local network and stores settings on the
   device. Plugins (sqflite, secure storage, file picker, path provider) ship
   their own manifests.

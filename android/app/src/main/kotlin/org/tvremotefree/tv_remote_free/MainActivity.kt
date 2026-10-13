@@ -33,7 +33,7 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         val messenger = flutterEngine.dartExecutor.binaryMessenger
 
-        // Links shared from other apps ("Share" -> TV Remote Free) go to the
+        // Links shared from other apps ("Share" -> OpenRemote) go to the
         // watchlist. Dart pulls the launch share and is pushed later ones.
         shareChannel = MethodChannel(messenger, "tv_remote_free/share").apply {
             setMethodCallHandler { call, result ->

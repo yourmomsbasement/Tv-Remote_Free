@@ -3,7 +3,7 @@
   "version": 1,
   "id": "builtin.sunset",
   "name": "Sunset",
-  "author": "TV Remote Free",
+  "author": "OpenRemote",
   "description": "Warm oranges, in light and dark.",
   "colors": { "seed": "#FF7043" },
   "light": { "background": "#FFF3E0", "ok": "#E64A19", "okText": "#FFFFFF" },

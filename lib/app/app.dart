@@ -67,7 +67,7 @@ class _TvRemoteAppState extends ConsumerState<TvRemoteApp> {
     final themeMode = ref.watch(settingsProvider.select((s) => s.themeMode));
     final theme = ref.watch(activeThemeProvider);
     return MaterialApp(
-      title: 'TV Remote Free',
+      title: 'OpenRemote',
       navigatorKey: _navigator,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(theme),

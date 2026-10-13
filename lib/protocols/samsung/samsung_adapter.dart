@@ -25,7 +25,7 @@ class SamsungAdapter implements SmartTVAdapter {
     required this.host,
     this.endpoints,
     Uri? infoUri,
-    this.appName = 'TV Remote Free',
+    this.appName = 'OpenRemote',
     this.connectTimeout = const Duration(seconds: 5),
     this.requestTimeout = const Duration(seconds: 5),
     this.pairingTimeout = const Duration(seconds: 60),

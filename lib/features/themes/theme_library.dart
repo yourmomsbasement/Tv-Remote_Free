@@ -24,7 +24,7 @@ const _defaultThemeJson = '''
   "version": 1,
   "id": "builtin.default",
   "name": "Default",
-  "author": "TV Remote Free",
+  "author": "OpenRemote",
   "description": "The standard look. Follows the system light/dark setting.",
   "colors": { "seed": "#3D5AFE" }
 }''';

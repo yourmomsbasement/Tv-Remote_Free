@@ -54,7 +54,7 @@ class AndroidTvAdapter implements SmartTVAdapter {
     required this.host,
     this.remotePort = 6466,
     this.pairingPort = 6467,
-    this.clientName = 'TV Remote Free',
+    this.clientName = 'OpenRemote',
     this.keySize = 2048,
     this.connectTimeout = const Duration(seconds: 5),
     this.responseTimeout = const Duration(seconds: 10),

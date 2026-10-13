@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/yourmomsbasement/Tv-Remote_Free/docs/theme.schema.json",
-  "title": "TV Remote Free theme",
-  "description": "A user theme for the TV Remote Free app. See docs/THEMES.md.",
+  "title": "OpenRemote theme",
+  "description": "A user theme for the OpenRemote app. See docs/THEMES.md.",
   "type": "object",
   "required": ["format", "version", "name"],
   "properties": {

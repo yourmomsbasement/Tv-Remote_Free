@@ -1,4 +1,4 @@
-# TV Remote Free
+# OpenRemote: TV Remote
 
 A free, open-source smart TV remote for Android and iOS, built with Flutter.
 It works entirely on your local Wi-Fi: no accounts, ads, tracking or paid

@@ -1,8 +1,8 @@
-# Privacy policy — TV Remote Free
+# Privacy policy — OpenRemote
 
 _Last updated: 13 October 2026_
 
-TV Remote Free is a free, open-source remote control for smart TVs. It is
+OpenRemote is a free, open-source remote control for smart TVs. It is
 built to work entirely on your home network.
 
 ## What we collect

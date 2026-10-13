@@ -193,7 +193,7 @@ class ThemeDefinition {
     final json = decoded;
     if (json['format'] != themeFormatId) {
       throw const ThemeFormatException(
-        'This is not a TV Remote Free theme ("format" is missing or wrong).',
+        'This is not a OpenRemote theme ("format" is missing or wrong).',
       );
     }
     final version = json['version'];

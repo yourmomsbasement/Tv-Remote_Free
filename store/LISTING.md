@@ -1,7 +1,12 @@
-# Store listing — TV Remote Free
+# Store listing — OpenRemote: TV Remote
 
 Copy these into App Store Connect and the Google Play Console. Character
 limits were checked by `tool/check_listing.py`.
+
+The name: an app called "OpenRemote" (an IoT platform by OpenRemote BV)
+already exists on the App Store, so Apple may refuse the exact name, and its
+owner could object. The ": TV Remote" suffix keeps the title unique; if
+App Store Connect still rejects it, try "OpenRemote TV" or another name.
 
 Brand names appear only to say what the app works with ("works with …").
 They are kept out of the app name, subtitle, keywords and Play short
@@ -14,7 +19,7 @@ file takedowns against apps that use their brands as titles.
 ## App Store
 
 **Name** (30)
-TV Remote Free
+OpenRemote: TV Remote
 
 **Subtitle** (30)
 Free remote for your smart TV
@@ -26,7 +31,7 @@ Control your TV from your phone: remote, keyboard, touchpad, apps and a watchlis
 remote,tv remote,smart tv,universal,controller,keyboard,touchpad,wifi,television,free,watchlist
 
 **Description** (4000)
-TV Remote Free turns your phone into a remote for the smart TVs in your home. It's completely free and open source, with no ads, no subscriptions, no accounts and no tracking. It talks only to the TVs on your Wi-Fi.
+OpenRemote turns your phone into a remote for the smart TVs in your home. It's completely free and open source, with no ads, no subscriptions, no accounts and no tracking. It talks only to the TVs on your Wi-Fi.
 
 WORKS WITH
 • Roku TVs and players
@@ -74,14 +79,14 @@ First release. Remote, keyboard, touchpad, apps, watchlist, themes and custom re
 **Support URL:** https://github.com/yourmomsbasement/Tv-Remote_Free/issues
 **Marketing URL:** https://github.com/yourmomsbasement/Tv-Remote_Free
 **Privacy Policy URL:** https://github.com/yourmomsbasement/Tv-Remote_Free/blob/master/docs/PRIVACY.md
-**Copyright:** 2026 TV Remote Free contributors
+**Copyright:** 2026 OpenRemote: TV Remote contributors
 
 ---
 
 ## Google Play
 
 **App name** (30)
-TV Remote Free
+OpenRemote: TV Remote
 
 **Short description** (80)
 Free, ad-free TV remote with phone keyboard, touchpad, apps and a watchlist.

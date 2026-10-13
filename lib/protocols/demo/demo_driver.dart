@@ -13,7 +13,7 @@ class DemoDriver extends ProtocolDriver {
     id: 'demo:tv',
     name: 'Demo TV',
     protocol: Protocols.demo,
-    manufacturer: 'TV Remote Free',
+    manufacturer: 'OpenRemote',
     model: 'Simulated TV',
   );
 

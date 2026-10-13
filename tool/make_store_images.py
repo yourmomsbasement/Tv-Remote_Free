@@ -110,7 +110,7 @@ def feature_graphic():
     mask = Image.new('L', icon.size, 0)
     ImageDraw.Draw(mask).rounded_rectangle([0, 0, 150, 150], 34, fill=255)
     img.paste(icon, (60, 90), mask)
-    d.text((60, 270), 'TV Remote Free', font=font('ExtraBold', 58), fill='white')
+    d.text((60, 270), 'OpenRemote', font=font('ExtraBold', 64), fill='white')
     d.text((62, 345), 'Free · No ads · No accounts', font=font('Medium', 28), fill=(214, 220, 255))
     raw = Image.open(os.path.join(RAW, '2_remote.png'))
     framed, pad = phone(raw, 300)

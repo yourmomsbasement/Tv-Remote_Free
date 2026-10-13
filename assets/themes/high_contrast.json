@@ -3,7 +3,7 @@
   "version": 1,
   "id": "builtin.high-contrast",
   "name": "High Contrast",
-  "author": "TV Remote Free",
+  "author": "OpenRemote",
   "description": "Yellow on black with larger buttons, for low vision.",
   "modes": ["dark"],
   "dark": {

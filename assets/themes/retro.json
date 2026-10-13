@@ -3,7 +3,7 @@
   "version": 1,
   "id": "builtin.retro",
   "name": "Retro Remote",
-  "author": "TV Remote Free",
+  "author": "OpenRemote",
   "description": "Grey plastic, rounded rubber keys and a red power button.",
   "modes": ["light"],
   "light": {
