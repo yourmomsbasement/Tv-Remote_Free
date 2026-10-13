@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../adapter/protocol_driver.dart';
 import '../errors.dart';
+import '../storage/device_record.dart';
 import 'discovered_device.dart';
 import 'ssdp.dart';
 
@@ -70,7 +71,7 @@ class DiscoveryService {
   /// Identifies a TV by IP. With [protocol] null, each driver is tried.
   Future<DiscoveredDevice> probe(String ipAddress, {String? protocol}) async {
     final candidates = protocol == null
-        ? drivers
+        ? drivers.where((d) => d.protocol != Protocols.demo).toList()
         : drivers.where((d) => d.protocol == protocol).toList();
     Object? lastError;
     for (final driver in candidates) {

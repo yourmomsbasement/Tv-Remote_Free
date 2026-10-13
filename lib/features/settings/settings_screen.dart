@@ -11,6 +11,7 @@ import '../profiles/profiles_screen.dart';
 import '../themes/theme_library.dart';
 import '../themes/themes_screen.dart';
 import 'app_settings.dart';
+import 'privacy_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -179,6 +180,15 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           const Divider(),
+          ListTile(
+            leading: const Icon(Icons.privacy_tip_outlined),
+            title: const Text('Privacy'),
+            subtitle: const Text(
+              'No data collected. Everything stays on this phone.',
+            ),
+            onTap: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => const PrivacyScreen())),
+          ),
           const AboutListTile(
             icon: Icon(Icons.info_outline),
             applicationName: 'TV Remote Free',

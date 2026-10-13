@@ -7,6 +7,7 @@ import '../../app/providers.dart';
 import '../../core/discovery/discovered_device.dart';
 import '../../core/errors.dart';
 import '../../core/storage/device_record.dart';
+import '../../protocols/demo/demo_driver.dart';
 import '../profiles/profiles_screen.dart';
 import '../remote/remote_screen.dart';
 import '../remote/remote_session.dart';
@@ -243,6 +244,16 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => _open(device.toRecord()),
               ),
+            if (!savedIds.contains(DemoDriver.device.id))
+              ListTile(
+                leading: const Icon(Icons.play_circle_outline),
+                title: const Text('Try the demo TV'),
+                subtitle: const Text(
+                  'A simulated TV for trying the app without one.',
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _open(DemoDriver.device),
+              ),
             if (!_scanning && newDevices.isEmpty && _scanError == null)
               const ListTile(
                 leading: Icon(Icons.search_off),
@@ -356,7 +367,11 @@ class _AddByIpDialogState extends ConsumerState<_AddByIpDialog> {
             items: [
               const DropdownMenuItem(value: null, child: Text('Detect')),
               for (final d in drivers)
-                DropdownMenuItem(value: d.protocol, child: Text(d.displayName)),
+                if (d.protocol != Protocols.demo)
+                  DropdownMenuItem(
+                    value: d.protocol,
+                    child: Text(d.displayName),
+                  ),
             ],
             onChanged: (v) => setState(() => _protocol = v),
           ),
