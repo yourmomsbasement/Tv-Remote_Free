@@ -7,6 +7,7 @@ import '../keyboard/keyboard_panel.dart';
 import '../settings/app_settings.dart';
 import '../settings/settings_screen.dart';
 import '../touchpad/touchpad_panel.dart';
+import 'pin_dialog.dart';
 import 'remote_panel.dart';
 import 'remote_session.dart';
 
@@ -50,6 +51,20 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen>
           previous != true &&
           ref.read(settingsProvider).keyboardAutoOpen) {
         _openKeyboard();
+      }
+    });
+
+    // Show the code entry as soon as the TV displays a code.
+    ref.listen(remoteSessionProvider.select((s) => s.awaitingPin), (
+      previous,
+      awaiting,
+    ) {
+      if (awaiting && previous != true) {
+        showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const PinDialog(),
+        );
       }
     });
 
@@ -136,6 +151,22 @@ class _ConnectionBanner extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final remote = ref.read(remoteSessionProvider.notifier);
+    if (session.awaitingPin) {
+      return MaterialBanner(
+        leading: const Icon(Icons.pin_outlined),
+        content: const Text('Enter the code shown on your TV.'),
+        actions: [
+          FilledButton(
+            onPressed: () => showDialog<void>(
+              context: context,
+              barrierDismissible: false,
+              builder: (_) => const PinDialog(),
+            ),
+            child: const Text('Enter code'),
+          ),
+        ],
+      );
+    }
     if (session.awaitingPairing) {
       return const MaterialBanner(
         leading: Icon(Icons.tv),

@@ -23,7 +23,21 @@ class DiscoveryService {
     final describing = <Future<DiscoveredDevice?>>[];
     final found = StreamController<DiscoveredDevice>();
 
-    final responses = _ssdp.search(targets, timeout: timeout);
+    // Drivers with their own discovery (mDNS) run alongside SSDP.
+    for (final driver in drivers) {
+      describing.add(
+        driver
+            .discover(timeout: timeout)
+            .forEach((device) {
+              if (seenDevices.add(device.id)) found.add(device);
+            })
+            .then((_) => null, onError: (_) => null),
+      );
+    }
+
+    final responses = targets.isEmpty
+        ? const Stream<SsdpResponse>.empty()
+        : _ssdp.search(targets, timeout: timeout);
     final sub = responses.listen(
       (response) {
         for (final driver in drivers) {

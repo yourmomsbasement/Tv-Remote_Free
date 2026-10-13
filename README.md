@@ -10,12 +10,12 @@ what works on which TV is in [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md).
 
 ## Status
 
-This is the first milestone (design phases 1–2, plus the keyboard, touchpad and
-app-launcher work from phases 3–4) for **Roku** and **LG webOS**. Android TV,
-Samsung Tizen, Fire TV and Apple TV are not implemented yet.
+Design phases 1–2 are done for **Roku**, **LG webOS** and **Android TV /
+Google TV**, along with the keyboard, touchpad and app-launcher work from
+phases 3–4. Samsung Tizen, Fire TV and Apple TV are not implemented yet.
 
-**Nothing has been tested on a physical TV yet.** Both adapters are tested
-against mock protocol servers only. See the compatibility matrix.
+**Nothing has been tested on a physical TV yet.** All three adapters are
+tested only against mock protocol servers. See the compatibility matrix.
 
 | Area | State |
 |---|---|
@@ -25,13 +25,14 @@ against mock protocol servers only. See the compatibility matrix.
 | SQLite metadata storage; pairing secrets in Keychain/Keystore | ✅ |
 | Roku ECP adapter | ✅ (mock-tested) |
 | LG webOS adapter (pairing prompt, pointer, IME text, focus events) | ✅ (mock-tested) |
+| Android TV / Google TV adapter (PIN pairing, TLS client certs, IME text, app links) | ✅ (mock-tested) |
+| mDNS discovery (Android multicast lock included) | ✅ |
 | Keyboard subsystem: diffed edits, batching, state machine, live/manual send | ✅ |
 | Touchpad (pointer on webOS, swipe-to-arrows elsewhere) | ✅ |
 | App launcher | ✅ |
 | Wake-on-LAN power on, auto-reconnect with backoff | ✅ |
 | Haptics, left-handed layout, TalkBack/VoiceOver labels | ✅ |
-| Android TV, Samsung, Fire TV, Apple TV adapters | — |
-| mDNS discovery (needed for Android TV) | — |
+| Samsung, Fire TV, Apple TV adapters | — |
 | Widgets, Quick Settings tile, macros, IR, voice | — |
 
 ## Architecture
@@ -43,12 +44,13 @@ lib/
     adapter/        SmartTVAdapter contract, ProtocolDriver (discovery + factory)
     capabilities/   DeviceCapabilities, RemoteKey
     connection/     Backoff, Wake-on-LAN
-    discovery/      SSDP client, DiscoveryService
+    discovery/      SSDP and mDNS clients, DiscoveryService
     security/       CredentialStore (flutter_secure_storage)
     storage/        SQLite DeviceRepository
   protocols/
     roku/           ECP over HTTP :8060
     lg_webos/       SSAP over WebSocket :3001 (wss) / :3000 (ws)
+    android_tv/     Android TV Remote v2: protobuf over TLS :6467 (pair) / :6466
     registry.dart   The drivers this build ships
   features/
     remote/         RemoteSession (unified controller) and the remote screen
@@ -93,8 +95,11 @@ flutter run            # on a device or emulator on the same Wi-Fi as the TV
 ```
 
 Tests run the real adapters against local mock servers: an HTTP server for
-Roku ECP and a WebSocket server for webOS SSAP, including the pairing prompt,
-the pointer socket and IME focus events. Repository tests use in-memory
+Roku ECP, a WebSocket server for webOS SSAP (pairing prompt, pointer socket,
+IME focus events), and a pair of TLS servers for Android TV (PIN pairing with
+client certificates, certificate pinning, remote handshake, IME edits). The
+Android TV pairing hash was also checked byte-for-byte against the
+`androidtvremote2` Python implementation. Repository tests use in-memory
 SQLite through `sqflite_common_ffi`, which needs the system `libsqlite3`
 (`apt install libsqlite3-dev` on Debian/Ubuntu).
 
@@ -104,13 +109,16 @@ SQLite through `sqflite_common_ffi`, which needs the system `libsqlite3`
   port 3000 are plain HTTP/WS on the LAN (see
   `android/app/src/main/res/xml/network_security_config.xml`). The app makes
   no internet requests.
-- **iOS:** `NSLocalNetworkUsageDescription` and `NSAllowsLocalNetworking`
-  are set. SSDP discovery also needs the
-  `com.apple.developer.networking.multicast` entitlement, which Apple must
-  grant to your team. Add it to `Runner.entitlements` once you have it. Until
-  then, use *Add by IP*.
+- **Android mDNS:** Android drops incoming multicast unless the app holds a
+  Wi-Fi `MulticastLock`. `MainActivity.kt` exposes one over a method
+  channel, and it is held only while a scan runs.
+- **iOS:** `NSLocalNetworkUsageDescription`, `NSAllowsLocalNetworking` and
+  `NSBonjourServices` (`_androidtvremote2._tcp`) are set. SSDP and mDNS
+  discovery also need the `com.apple.developer.networking.multicast`
+  entitlement, which Apple must grant to your team. Add it to
+  `Runner.entitlements` once you have it. Until then, use *Add by IP*.
 
 ## License
 
-[Apache License 2.0](LICENSE). Roku, LG and webOS are trademarks of their
+[Apache License 2.0](LICENSE). Roku, LG, webOS, Android TV and Google TV are trademarks of their
 respective owners. This project is not affiliated with or endorsed by them.

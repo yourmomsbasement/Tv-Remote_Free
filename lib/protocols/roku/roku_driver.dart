@@ -7,7 +7,7 @@ import '../../core/discovery/ssdp.dart';
 import '../../core/storage/device_record.dart';
 import 'roku_adapter.dart';
 
-class RokuDriver implements ProtocolDriver {
+class RokuDriver extends ProtocolDriver {
   RokuDriver({http.Client Function()? clientFactory})
     : _clientFactory = clientFactory ?? http.Client.new;
 

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/adapter/smart_tv_adapter.dart';
 import '../../core/errors.dart';
 import '../remote/remote_session.dart';
+import 'app_links.dart';
 
 /// Apps installed on the connected TV, reloaded on each connection.
 final tvAppsProvider = FutureProvider.autoDispose<List<TvApp>>((ref) async {
@@ -25,8 +26,14 @@ class AppsPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(remoteSessionProvider);
     if (!session.capabilities.appList && session.isConnected) {
-      return const Center(
-        child: Text('This TV does not let the phone list its apps.'),
+      if (!session.capabilities.appLaunch) {
+        return const Center(
+          child: Text('This TV does not let the phone open apps.'),
+        );
+      }
+      return _AppGrid(
+        apps: knownAppLinks,
+        header: 'This TV cannot list its apps. These open if installed.',
       );
     }
     final apps = ref.watch(tvAppsProvider);
@@ -58,21 +65,43 @@ class AppsPanel extends ConsumerWidget {
         }
         return RefreshIndicator(
           onRefresh: () => ref.refresh(tvAppsProvider.future),
-          child: GridView.builder(
-            padding: const EdgeInsets.all(16),
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 140,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 0.9,
-            ),
-            itemCount: list.length,
-            itemBuilder: (context, i) => _AppTile(app: list[i]),
-          ),
+          child: _AppGrid(apps: list),
         );
       },
     );
   }
+}
+
+class _AppGrid extends StatelessWidget {
+  const _AppGrid({required this.apps, this.header});
+
+  final List<TvApp> apps;
+  final String? header;
+
+  @override
+  Widget build(BuildContext context) => CustomScrollView(
+    physics: const AlwaysScrollableScrollPhysics(),
+    slivers: [
+      if (header != null)
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          sliver: SliverToBoxAdapter(child: Text(header!)),
+        ),
+      SliverPadding(
+        padding: const EdgeInsets.all(16),
+        sliver: SliverGrid.builder(
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 140,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: 0.9,
+          ),
+          itemCount: apps.length,
+          itemBuilder: (context, i) => _AppTile(app: apps[i]),
+        ),
+      ),
+    ],
+  );
 }
 
 class _AppTile extends ConsumerWidget {

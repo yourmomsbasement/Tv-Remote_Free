@@ -12,7 +12,7 @@ import '../../core/errors.dart';
 import '../../core/storage/device_record.dart';
 import 'webos_adapter.dart';
 
-class WebOsDriver implements ProtocolDriver {
+class WebOsDriver extends ProtocolDriver {
   WebOsDriver({http.Client Function()? clientFactory})
     : _clientFactory = clientFactory ?? http.Client.new;
 

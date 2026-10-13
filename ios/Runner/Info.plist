@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>TV Remote Free finds and controls TVs on your Wi-Fi network. Nothing leaves your local network.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_androidtvremote2._tcp</string>
+	</array>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<!-- Roku ECP and older webOS firmware only speak plain HTTP/WS on the LAN. -->

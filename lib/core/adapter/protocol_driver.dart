@@ -17,6 +17,12 @@ abstract class ProtocolDriver {
 
   bool matches(SsdpResponse response);
 
+  /// Discovery that does not go through SSDP (e.g. mDNS). Streams devices
+  /// until [timeout]. Most drivers rely on SSDP and keep this empty.
+  Stream<DiscoveredDevice> discover({
+    Duration timeout = const Duration(seconds: 5),
+  }) => const Stream.empty();
+
   /// Turns an SSDP response into a device, fetching details if needed.
   /// Returns null if the responder turns out not to be a supported device.
   Future<DiscoveredDevice?> describe(SsdpResponse response);

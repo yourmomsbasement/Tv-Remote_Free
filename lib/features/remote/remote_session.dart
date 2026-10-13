@@ -20,6 +20,7 @@ class RemoteSessionState {
     this.capabilities = DeviceCapabilities.none,
     this.error,
     this.awaitingPairing = false,
+    this.awaitingPin = false,
     this.reconnecting = false,
     this.volume,
     this.muted,
@@ -31,6 +32,9 @@ class RemoteSessionState {
   final DeviceCapabilities capabilities;
   final TvRemoteException? error;
   final bool awaitingPairing;
+
+  /// The TV shows a code that the user must type into the phone.
+  final bool awaitingPin;
   final bool reconnecting;
   final int? volume;
   final bool? muted;
@@ -49,6 +53,7 @@ class RemoteSessionState {
     DeviceCapabilities? capabilities,
     TvRemoteException? Function()? error,
     bool? awaitingPairing,
+    bool? awaitingPin,
     bool? reconnecting,
     int? volume,
     bool? muted,
@@ -59,6 +64,7 @@ class RemoteSessionState {
     capabilities: capabilities ?? this.capabilities,
     error: error == null ? this.error : error(),
     awaitingPairing: awaitingPairing ?? this.awaitingPairing,
+    awaitingPin: awaitingPin ?? this.awaitingPin,
     reconnecting: reconnecting ?? this.reconnecting,
     volume: volume ?? this.volume,
     muted: muted ?? this.muted,
@@ -131,6 +137,7 @@ class RemoteSession extends Notifier<RemoteSessionState> {
         status: ConnectionStatus.connected,
         capabilities: capabilities,
         awaitingPairing: false,
+        awaitingPin: false,
         reconnecting: false,
         error: () => null,
       );
@@ -143,6 +150,7 @@ class RemoteSession extends Notifier<RemoteSessionState> {
       state = state.copyWith(
         status: ConnectionStatus.disconnected,
         awaitingPairing: false,
+        awaitingPin: false,
         error: () => e,
       );
       if (e.code == TvErrorCode.unreachable || e.code == TvErrorCode.timeout) {
@@ -155,8 +163,8 @@ class RemoteSession extends Notifier<RemoteSessionState> {
 
   void _onEvent(DeviceEvent event) {
     switch (event) {
-      case PairingPromptShown():
-        state = state.copyWith(awaitingPairing: true);
+      case PairingPromptShown(:final needsPin):
+        state = state.copyWith(awaitingPairing: true, awaitingPin: needsPin);
       case PairingCompleted(:final credential):
         final id = state.device?.id;
         if (id != null) ref.read(credentialStoreProvider).write(id, credential);
@@ -226,8 +234,23 @@ class RemoteSession extends Notifier<RemoteSessionState> {
       status: ConnectionStatus.disconnected,
       reconnecting: false,
       awaitingPairing: false,
+      awaitingPin: false,
       textFieldFocused: false,
     );
+  }
+
+  /// Sends the code shown on the TV. Returns an error message to show next
+  /// to the input, or null once the TV has accepted the code.
+  Future<String?> submitPin(String pin) async {
+    final adapter = _adapter;
+    if (adapter == null || !state.awaitingPin) return 'Not pairing';
+    try {
+      await adapter.pair(PairingRequest(pin: pin));
+      state = state.copyWith(awaitingPin: false);
+      return null;
+    } on TvRemoteException catch (e) {
+      return e.message;
+    }
   }
 
   /// App went to background: drop sockets to save battery, remember intent.

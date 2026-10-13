@@ -116,4 +116,23 @@ void main() {
     await session().disconnect();
     expect(state().reconnecting, isFalse);
   });
+
+  test('PIN pairing: prompt, wrong code message, then success', () async {
+    container.listen(remoteSessionProvider, (_, _) {});
+    await session().connect(device);
+    tv.eventController.add(const PairingPromptShown(needsPin: true));
+    await Future<void>.delayed(Duration.zero);
+    expect(state().awaitingPin, isTrue);
+
+    tv.failNext = const TvRemoteException(
+      TvErrorCode.pairingRejected,
+      'That code does not match.',
+    );
+    expect(await session().submitPin('000000'), 'That code does not match.');
+    expect(state().awaitingPin, isTrue);
+
+    expect(await session().submitPin('A1B2C3'), isNull);
+    expect(state().awaitingPin, isFalse);
+    expect(tv.calls, contains('pair:A1B2C3'));
+  });
 }

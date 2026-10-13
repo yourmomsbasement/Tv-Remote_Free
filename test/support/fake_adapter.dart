@@ -60,7 +60,10 @@ class FakeAdapter implements SmartTVAdapter {
   Future<DeviceCapabilities> getCapabilities() async => capabilities;
 
   @override
-  Future<void> pair(PairingRequest request) async {}
+  Future<void> pair(PairingRequest request) async {
+    _maybeFail();
+    calls.add('pair:${request.pin}');
+  }
 
   @override
   Future<void> sendKey(RemoteKey key) async {

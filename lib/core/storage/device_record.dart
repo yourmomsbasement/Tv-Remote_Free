@@ -2,8 +2,9 @@
 abstract final class Protocols {
   static const roku = 'roku';
   static const lgWebOs = 'lg_webos';
+  static const androidTv = 'android_tv';
 
-  static const all = [roku, lgWebOs];
+  static const all = [roku, lgWebOs, androidTv];
 
   static String label(String protocol) => switch (protocol) {
     roku => 'Roku',

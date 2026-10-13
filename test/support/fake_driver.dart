@@ -6,7 +6,7 @@ import 'package:tv_remote_free/core/storage/device_record.dart';
 
 import 'fake_adapter.dart';
 
-class FakeDriver implements ProtocolDriver {
+class FakeDriver extends ProtocolDriver {
   FakeDriver(this.adapter);
 
   final FakeAdapter adapter;
