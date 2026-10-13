@@ -185,4 +185,41 @@ void main() {
       ),
     );
   });
+
+  test('clear empties the phone text and does not resend it later', () async {
+    var notified = 0;
+    keyboard.addListener(() => notified++);
+    keyboard.open();
+    keyboard.updateText('netflix');
+    await keyboard.flush();
+    notified = 0;
+    await keyboard.clear();
+    expect(keyboard.text, isEmpty);
+    expect(notified, greaterThan(0));
+    expect(tv.tvText, isEmpty);
+    keyboard.updateText('h');
+    await keyboard.flush();
+    expect(tv.tvText, 'h');
+    expect(tv.calls.last, 'text:h');
+  });
+
+  test('clear after a submitted search still empties the TV field', () async {
+    keyboard.open();
+    keyboard.updateText('news');
+    await keyboard.submit();
+    expect(tv.tvText, 'news'); // search fields keep the query after Enter
+    await keyboard.clear();
+    expect(tv.calls.last, 'delete:${KeyboardController.clearFallbackCount}');
+    expect(tv.tvText, isEmpty);
+  });
+
+  test('clear drops text that was never sent', () async {
+    keyboard
+      ..mode = KeyboardSyncMode.manual
+      ..open()
+      ..updateText('draft');
+    await keyboard.clear();
+    expect(tv.calls.where((c) => c.startsWith('text:')), isEmpty);
+    expect(keyboard.hasPendingText, isFalse);
+  });
 }

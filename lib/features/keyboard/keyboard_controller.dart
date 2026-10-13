@@ -137,10 +137,25 @@ class KeyboardController extends ChangeNotifier {
   }
 
   /// Removes everything this session typed into the TV field.
+  /// How many characters Clear deletes when this session has typed nothing
+  /// into the field: after a submitted search, or text the TV filled in.
+  /// TVs ignore extra deletes on an empty field.
+  static const clearFallbackCount = 30;
+
+  /// Empties the phone buffer and the TV field.
   Future<void> clear() {
     if (!isAvailable) return Future.value();
+    _batchTimer?.cancel();
+    _batchTimer = null;
+    final typed = _sent.runes.length;
+    // Text not yet sent never reached the TV, so it is simply dropped.
     _local = '';
-    return flush();
+    _sent = '';
+    // Update the phone's text field too, or the next keystroke would resend
+    // the old text.
+    notifyListeners();
+    final count = typed > 0 ? typed : clearFallbackCount;
+    return _enqueue(() => _adapter!.deleteText(count));
   }
 
   /// Sends any pending text immediately (also used by "Send" in manual mode).
