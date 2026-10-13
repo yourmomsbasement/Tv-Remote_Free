@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tv_remote_free/core/adapter/smart_tv_adapter.dart';
 import 'package:tv_remote_free/core/capabilities/device_capabilities.dart';
 import 'package:tv_remote_free/core/capabilities/remote_key.dart';
+import 'package:tv_remote_free/core/content/content_link.dart';
 import 'package:tv_remote_free/core/errors.dart';
 import 'package:tv_remote_free/protocols/lg_webos/webos_adapter.dart';
 
@@ -378,4 +379,31 @@ void main() {
     await settle();
     expect(events.whereType<ActivityChanged>().last.activity.hasMedia, isFalse);
   });
+
+  test(
+    'opens YouTube and Netflix links with LG deep-link parameters',
+    () async {
+      await adapter.connect();
+      expect(
+        await adapter.openContent(
+          ContentLink.parse('https://www.youtube.com/watch?v=abc123')!,
+        ),
+        isTrue,
+      );
+      expect(tv.requestsTo('ssap://system.launcher/launch').last['payload'], {
+        'id': 'youtube.leanback.v4',
+        'params': {'contentTarget': 'https://www.youtube.com/tv?v=abc123'},
+      });
+      expect(
+        await adapter.openContent(
+          ContentLink.parse('https://www.netflix.com/title/80057281')!,
+        ),
+        isTrue,
+      );
+      expect(tv.requestsTo('ssap://system.launcher/launch').last['payload'], {
+        'id': 'netflix',
+        'contentId': 'm=https://www.netflix.com/watch/80057281&source_type=4',
+      });
+    },
+  );
 }

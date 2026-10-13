@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:tv_remote_free/core/adapter/smart_tv_adapter.dart';
 import 'package:tv_remote_free/core/capabilities/device_capabilities.dart';
 import 'package:tv_remote_free/core/capabilities/remote_key.dart';
+import 'package:tv_remote_free/core/content/content_link.dart';
 import 'package:tv_remote_free/core/errors.dart';
 
 /// Records every call so tests can assert exactly what reached the "TV".
@@ -105,6 +106,13 @@ class FakeAdapter implements SmartTVAdapter {
 
   @override
   Future<void> launchApp(String appId) async => calls.add('launch:$appId');
+
+  @override
+  Future<bool> openContent(ContentLink link) async {
+    _maybeFail();
+    calls.add('open:${link.service.name}:${link.contentId}');
+    return link.contentId != null;
+  }
 
   /// Icon bytes to return per app id.
   final icons = <String, Uint8List>{};

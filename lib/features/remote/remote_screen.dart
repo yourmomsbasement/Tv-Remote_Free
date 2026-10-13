@@ -8,6 +8,7 @@ import '../settings/app_settings.dart';
 import '../settings/settings_screen.dart';
 import '../touchpad/touchpad_panel.dart';
 import '../macros/macros_screen.dart';
+import '../watchlist/watchlist_panel.dart';
 import 'pin_dialog.dart';
 import 'sleep_timer.dart';
 import 'remote_panel.dart';
@@ -24,7 +25,7 @@ class RemoteScreen extends ConsumerStatefulWidget {
 class _RemoteScreenState extends ConsumerState<RemoteScreen>
     with SingleTickerProviderStateMixin {
   static const _keyboardTab = 2;
-  late final _tabs = TabController(length: 4, vsync: this);
+  late final _tabs = TabController(length: 5, vsync: this);
   final _keyboardFocus = FocusNode();
 
   @override
@@ -211,11 +212,15 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen>
         ],
         bottom: TabBar(
           controller: _tabs,
+          // Five tabs do not fit narrow phones; scroll rather than clip.
+          isScrollable: true,
+          tabAlignment: TabAlignment.center,
           tabs: const [
             Tab(icon: Icon(Icons.settings_remote), text: 'Remote'),
             Tab(icon: Icon(Icons.touch_app_outlined), text: 'Touchpad'),
             Tab(icon: Icon(Icons.keyboard_outlined), text: 'Keyboard'),
             Tab(icon: Icon(Icons.apps), text: 'Apps'),
+            Tab(icon: Icon(Icons.bookmarks_outlined), text: 'Watchlist'),
           ],
         ),
       ),
@@ -232,6 +237,7 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen>
                   const TouchpadPanel(),
                   KeyboardPanel(focusNode: _keyboardFocus),
                   const AppsPanel(),
+                  const WatchlistPanel(),
                 ],
               ),
             ),

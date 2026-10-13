@@ -8,6 +8,7 @@ import '../../core/adapter/smart_tv_adapter.dart';
 import '../../core/capabilities/device_capabilities.dart';
 import '../../core/capabilities/remote_key.dart';
 import '../../core/connection/backoff.dart';
+import '../../core/content/content_link.dart';
 import '../../core/connection/wake_on_lan.dart';
 import '../../core/errors.dart';
 import '../../core/storage/device_record.dart';
@@ -422,6 +423,18 @@ class RemoteSession extends Notifier<RemoteSessionState> {
     'Pointer control',
     (a) => a.movePointer(dx, dy),
   );
+
+  /// Opens a watchlist link. Returns true if the exact item was requested,
+  /// false if only its app opened, or null on failure (see [state.error]).
+  Future<bool?> openContent(ContentLink link) async {
+    bool? exact;
+    final ok = await _gated(
+      state.capabilities.contentLaunch,
+      'Opening links',
+      (a) async => exact = await a.openContent(link),
+    );
+    return ok ? exact : null;
+  }
 
   /// Types [text] into the focused TV field, optionally pressing Enter.
   Future<bool> typeText(String text, {bool submit = false}) =>

@@ -131,6 +131,7 @@ void main() {
     expect(await upgraded.listThemes(), hasLength(1));
     await upgraded.saveMacro('m', '{}');
     expect(await upgraded.listMacros(), [('m', '{}')]);
+    expect(await upgraded.listWatchlist(), isEmpty);
     await upgraded.close();
     await dir.delete(recursive: true);
   });

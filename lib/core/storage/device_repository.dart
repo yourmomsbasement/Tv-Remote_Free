@@ -10,7 +10,8 @@ class DeviceRepository {
   final Database _db;
 
   /// 1: devices, preferences, settings. 2: user themes. 3: macros.
-  static const _schemaVersion = 3;
+  /// 4: watchlist.
+  static const _schemaVersion = 4;
 
   static Future<DeviceRepository> open({
     DatabaseFactory? factory,
@@ -53,10 +54,12 @@ class DeviceRepository {
             )''');
           await _createThemes(db);
           await _createMacros(db);
+          await _createWatchlist(db);
         },
         onUpgrade: (db, from, to) async {
           if (from < 2) await _createThemes(db);
           if (from < 3) await _createMacros(db);
+          if (from < 4) await _createWatchlist(db);
         },
       ),
     );
@@ -76,6 +79,28 @@ class DeviceRepository {
       json TEXT NOT NULL,
       created_at INTEGER NOT NULL
     )''');
+
+  static Future<void> _createWatchlist(Database db) => db.execute('''
+    CREATE TABLE watchlist (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      url TEXT NOT NULL,
+      added_at INTEGER NOT NULL,
+      watched INTEGER NOT NULL DEFAULT 0
+    )''');
+
+  /// Watchlist rows, newest first.
+  Future<List<Map<String, Object?>>> listWatchlist() =>
+      _db.query('watchlist', orderBy: 'added_at DESC');
+
+  Future<void> saveWatchItem(Map<String, Object?> row) => _db.insert(
+    'watchlist',
+    row,
+    conflictAlgorithm: ConflictAlgorithm.replace,
+  );
+
+  Future<void> deleteWatchItem(String id) =>
+      _db.delete('watchlist', where: 'id = ?', whereArgs: [id]);
 
   /// Saved macros, oldest first, as (id, JSON).
   Future<List<(String, String)>> listMacros() async {

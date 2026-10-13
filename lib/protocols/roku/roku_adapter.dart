@@ -8,6 +8,7 @@ import 'package:xml/xml.dart';
 import '../../core/adapter/smart_tv_adapter.dart';
 import '../../core/capabilities/device_capabilities.dart';
 import '../../core/capabilities/remote_key.dart';
+import '../../core/content/content_link.dart';
 import '../../core/connection/tv_image_fetcher.dart';
 import '../../core/errors.dart';
 import 'roku_device_info.dart';
@@ -55,8 +56,17 @@ class RokuAdapter implements SmartTVAdapter {
   @override
   Stream<DeviceEvent> get events => _events.stream;
 
-  Uri _uri(String path) =>
-      Uri(scheme: 'http', host: host, port: port, path: path);
+  /// [path] may carry an already-encoded query (`/launch/12?contentId=1`).
+  Uri _uri(String path) {
+    final q = path.indexOf('?');
+    return Uri(
+      scheme: 'http',
+      host: host,
+      port: port,
+      path: q < 0 ? path : path.substring(0, q),
+      query: q < 0 ? null : path.substring(q + 1),
+    );
+  }
 
   void _setStatus(ConnectionStatus status, {Object? error}) {
     _status = status;
@@ -160,6 +170,7 @@ class RokuAdapter implements SmartTVAdapter {
       playbackState: true,
       playbackPosition: true,
       appLaunch: true,
+      contentLaunch: true,
       appList: true,
     );
   }
@@ -269,6 +280,51 @@ class RokuAdapter implements SmartTVAdapter {
       )
       .map((e) => TvApp(id: e.getAttribute('id')!, name: e.innerText.trim()))
       .toList();
+
+  /// Deep links into YouTube and Netflix with `contentId` (supported by
+  /// those channels); other services open their channel.
+  @override
+  Future<bool> openContent(ContentLink link) async {
+    _requireConnected();
+    final appId = await _appFor(link.service);
+    if (appId == null) {
+      throw TvRemoteException(
+        TvErrorCode.unsupported,
+        '${link.service.displayName} is not installed on this Roku',
+      );
+    }
+    final id = link.contentId;
+    final params = switch (link.service) {
+      StreamingService.youtube when id != null => {
+        'contentId': id,
+        'mediaType': 'live',
+      },
+      StreamingService.netflix when id != null => {
+        'contentId': id,
+        'mediaType': 'movie',
+      },
+      _ => null,
+    };
+    final path = '/launch/${Uri.encodeComponent(appId)}';
+    await _send(
+      'POST',
+      params == null
+          ? path
+          : Uri(path: path, queryParameters: params).toString(),
+    );
+    return params != null;
+  }
+
+  Future<String?> _appFor(StreamingService service) async {
+    try {
+      final apps = await listApps();
+      final match = apps.where((a) => service.matchesApp(a.name)).firstOrNull;
+      if (match != null) return match.id;
+      return null;
+    } on TvRemoteException {
+      return service.rokuAppId;
+    }
+  }
 
   @override
   Future<void> launchApp(String appId) async {

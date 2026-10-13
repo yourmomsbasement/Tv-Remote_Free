@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import '../../core/adapter/smart_tv_adapter.dart';
 import '../../core/capabilities/device_capabilities.dart';
 import '../../core/capabilities/remote_key.dart';
+import '../../core/content/content_link.dart';
 import '../../core/connection/tv_image_fetcher.dart';
 import '../../core/errors.dart';
 import 'webos_keys.dart';
@@ -181,6 +182,7 @@ class WebOsAdapter implements SmartTVAdapter {
     scroll: true,
     activity: true,
     playbackState: true,
+    contentLaunch: true,
     appLaunch: true,
     appList: true,
     pairingRequired: true,
@@ -643,6 +645,35 @@ class WebOsAdapter implements SmartTVAdapter {
   Future<Uint8List?> fetchAppIcon(TvApp app) => _images.fetchFirst(
     iconCandidates(host, _iconPaths[app.id] ?? [?app.iconUrl]),
   );
+
+  /// Deep links into YouTube (contentTarget) and Netflix (contentId), the
+  /// formats LG's own apps accept; other services open their app.
+  @override
+  Future<bool> openContent(ContentLink link) async {
+    _requireConnected();
+    final apps = await listApps();
+    final app = apps.where((a) => link.service.matchesApp(a.name)).firstOrNull;
+    if (app == null) {
+      throw TvRemoteException(
+        TvErrorCode.unsupported,
+        '${link.service.displayName} is not installed on this TV',
+      );
+    }
+    final id = link.contentId;
+    final payload = switch (link.service) {
+      StreamingService.youtube when id != null => {
+        'id': app.id,
+        'params': {'contentTarget': 'https://www.youtube.com/tv?v=$id'},
+      },
+      StreamingService.netflix when id != null => {
+        'id': app.id,
+        'contentId': 'm=https://www.netflix.com/watch/$id&source_type=4',
+      },
+      _ => {'id': app.id},
+    };
+    await _request('ssap://system.launcher/launch', payload);
+    return payload.length > 1;
+  }
 
   @override
   Future<void> launchApp(String appId) async {

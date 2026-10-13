@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tv_remote_free/core/adapter/smart_tv_adapter.dart';
 import 'package:tv_remote_free/core/capabilities/device_capabilities.dart';
 import 'package:tv_remote_free/core/capabilities/remote_key.dart';
+import 'package:tv_remote_free/core/content/content_link.dart';
 import 'package:tv_remote_free/core/errors.dart';
 import 'package:tv_remote_free/protocols/android_tv/atv_adapter.dart';
 import 'package:tv_remote_free/protocols/android_tv/atv_crypto.dart';
@@ -526,6 +527,27 @@ void main() {
     expect(
       events.whereType<ActivityChanged>().single.activity.appId,
       'com.netflix.ninja',
+    );
+    await adapter.dispose();
+  });
+
+  test('opens any shared link as an app link', () async {
+    final adapter = newAdapter();
+    await pairAndConnect(adapter);
+    expect(
+      await adapter.openContent(
+        ContentLink.parse('https://www.disneyplus.com/video/abc')!,
+      ),
+      isTrue,
+    );
+    await settle();
+    expect(
+      tv
+          .sent(RemoteMsg.appLinkLaunch)
+          .single
+          .message(RemoteMsg.appLinkLaunch)!
+          .string(1),
+      'https://www.disneyplus.com/video/abc',
     );
     await adapter.dispose();
   });

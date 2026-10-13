@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../features/devices/devices_screen.dart';
 import '../features/remote/remote_session.dart';
 import '../features/remote/sleep_timer.dart';
+import '../core/platform/share_receiver.dart';
 import '../features/settings/app_settings.dart';
+import '../features/watchlist/watchlist_panel.dart';
 import '../features/themes/theme_library.dart';
 import '../ui/themes/app_theme.dart';
 
@@ -17,6 +19,7 @@ class TvRemoteApp extends ConsumerStatefulWidget {
 
 class _TvRemoteAppState extends ConsumerState<TvRemoteApp> {
   late final AppLifecycleListener _lifecycle;
+  final _navigator = GlobalKey<NavigatorState>();
 
   @override
   void initState() {
@@ -31,6 +34,15 @@ class _TvRemoteAppState extends ConsumerState<TvRemoteApp> {
       },
       onResume: () => ref.read(remoteSessionProvider.notifier).resume(),
     );
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => ShareReceiver.listen(_onShared),
+    );
+  }
+
+  void _onShared(String text) {
+    final context = _navigator.currentContext;
+    if (context == null) return;
+    showAddToWatchlist(context, sharedText: text);
   }
 
   @override
@@ -45,6 +57,7 @@ class _TvRemoteAppState extends ConsumerState<TvRemoteApp> {
     final theme = ref.watch(activeThemeProvider);
     return MaterialApp(
       title: 'TV Remote Free',
+      navigatorKey: _navigator,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(theme),
       darkTheme: AppTheme.dark(theme),

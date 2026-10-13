@@ -512,4 +512,61 @@ void main() {
 
     await tester.runAsync(() => repo.close());
   });
+
+  testWidgets('watchlist: paste a shared link, then open it on the TV', (
+    tester,
+  ) async {
+    tv.capabilities = DeviceCapabilities(
+      keys: tv.capabilities.keys,
+      textInput: true,
+      contentLaunch: true,
+    );
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+          if (call.method == 'Clipboard.getData') {
+            return {'text': 'Must watch https://youtu.be/dQw4w9WgXcQ'};
+          }
+          return null;
+        });
+    await tester.runAsync(() async {
+      repo = await openTestRepository();
+      await repo.upsertDevice(
+        const DeviceRecord(
+          id: 'fake:1',
+          name: 'Den TV',
+          protocol: 'fake',
+          ipAddress: '10.0.0.5',
+        ),
+      );
+    });
+    await pumpApp(tester);
+    Future<void> settle() async {
+      for (var i = 0; i < 6; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+        );
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+    }
+
+    await tester.tap(find.text('Den TV'));
+    await settle();
+    await tester.tap(find.widgetWithText(Tab, 'Watchlist'));
+    await settle();
+    await tester.tap(find.text('Add link'));
+    await settle();
+    await tester.tap(find.byTooltip('Paste'));
+    await settle();
+    expect(find.text('Must watch'), findsOneWidget); // suggested title
+    await tester.tap(find.text('Add'));
+    await settle();
+
+    expect(find.text('Must watch'), findsOneWidget);
+    await tester.tap(find.text('Must watch'));
+    await settle();
+    expect(tv.calls.last, 'open:youtube:dQw4w9WgXcQ');
+    expect(find.textContaining('on the TV'), findsOneWidget);
+
+    await tester.runAsync(() => repo.close());
+  });
 }

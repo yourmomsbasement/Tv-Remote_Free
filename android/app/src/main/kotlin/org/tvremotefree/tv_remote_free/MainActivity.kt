@@ -1,6 +1,8 @@
 package org.tvremotefree.tv_remote_free
 
 import android.content.Context
+import android.content.Intent
+import android.os.Bundle
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.VibrationEffect
@@ -12,6 +14,10 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private var multicastLock: WifiManager.MulticastLock? = null
+    private var shareChannel: MethodChannel? = null
+
+    /** Text shared into the app before Flutter asked for it. */
+    private var pendingShare: String? = null
 
     private val vibrator: Vibrator? by lazy {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -26,6 +32,19 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         val messenger = flutterEngine.dartExecutor.binaryMessenger
+
+        // Links shared from other apps ("Share" -> TV Remote Free) go to the
+        // watchlist. Dart pulls the launch share and is pushed later ones.
+        shareChannel = MethodChannel(messenger, "tv_remote_free/share").apply {
+            setMethodCallHandler { call, result ->
+                if (call.method == "takePending") {
+                    result.success(pendingShare)
+                    pendingShare = null
+                } else {
+                    result.notImplemented()
+                }
+            }
+        }
 
         // Android filters incoming multicast (mDNS answers) unless a
         // MulticastLock is held. Held only while a discovery scan runs.
@@ -91,6 +110,26 @@ class MainActivity : FlutterActivity() {
             @Suppress("DEPRECATION")
             v.vibrate(ms)
         }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        if (savedInstanceState == null) pendingShare = sharedText(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        val text = sharedText(intent) ?: return
+        val channel = shareChannel
+        if (channel != null) channel.invokeMethod("shared", text) else pendingShare = text
+    }
+
+    private fun sharedText(intent: Intent?): String? {
+        if (intent?.action != Intent.ACTION_SEND || intent.type != "text/plain") return null
+        val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: return null
+        val subject = intent.getStringExtra(Intent.EXTRA_SUBJECT)
+        // Many apps put the title in the subject and only the link in the text.
+        return if (subject.isNullOrBlank() || text.contains(subject)) text else "$subject $text"
     }
 
     override fun onDestroy() {

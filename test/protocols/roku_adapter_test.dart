@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tv_remote_free/core/adapter/smart_tv_adapter.dart';
 import 'package:tv_remote_free/core/capabilities/device_capabilities.dart';
 import 'package:tv_remote_free/core/capabilities/remote_key.dart';
+import 'package:tv_remote_free/core/content/content_link.dart';
 import 'package:tv_remote_free/core/errors.dart';
 import 'package:tv_remote_free/protocols/roku/roku_adapter.dart';
 import 'package:tv_remote_free/protocols/roku/roku_driver.dart';
@@ -296,4 +297,50 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 120));
     expect(activities.length, count, reason: 'polling stops on dispose');
   });
+
+  test(
+    'opens YouTube and Netflix links directly, others not installed fail',
+    () async {
+      await adapter.connect();
+      expect(
+        await adapter.openContent(
+          ContentLink.parse('https://youtu.be/dQw4w9WgXcQ')!,
+        ),
+        isTrue,
+      );
+      expect(
+        tv.posts.last,
+        'POST /launch/837?contentId=dQw4w9WgXcQ&mediaType=live',
+      );
+      expect(
+        await adapter.openContent(
+          ContentLink.parse('https://www.netflix.com/title/80057281')!,
+        ),
+        isTrue,
+      );
+      expect(
+        tv.posts.last,
+        'POST /launch/12?contentId=80057281&mediaType=movie',
+      );
+      expect(
+        await adapter.openContent(
+          ContentLink.parse('https://www.netflix.com/browse')!,
+        ),
+        isFalse,
+      );
+      expect(tv.posts.last, 'POST /launch/12');
+      expect(
+        () => adapter.openContent(
+          ContentLink.parse('https://www.disneyplus.com/video/x')!,
+        ),
+        throwsA(
+          isA<TvRemoteException>().having(
+            (e) => e.code,
+            'code',
+            TvErrorCode.unsupported,
+          ),
+        ),
+      );
+    },
+  );
 }

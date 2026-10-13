@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import '../../core/adapter/smart_tv_adapter.dart';
 import '../../core/capabilities/device_capabilities.dart';
 import '../../core/capabilities/remote_key.dart';
+import '../../core/content/content_link.dart';
 import '../../core/errors.dart';
 import 'atv_crypto.dart';
 import 'atv_keys.dart';
@@ -448,6 +449,7 @@ class AndroidTvAdapter implements SmartTVAdapter {
       textFieldDetection: ime,
       activity: ime,
       appLaunch: (_features & AtvFeature.appLink) != 0,
+      contentLaunch: (_features & AtvFeature.appLink) != 0,
       pairingRequired: true,
     );
   }
@@ -569,6 +571,13 @@ class AndroidTvAdapter implements SmartTVAdapter {
       throw const TvRemoteException.unsupported('Launching apps');
     }
     link.send(RemoteMsg.appLink(appLink));
+  }
+
+  /// Android TV hands the link to the app registered for it.
+  @override
+  Future<bool> openContent(ContentLink link) async {
+    await launchApp(link.url.toString());
+    return true;
   }
 
   /// App links carry no icons; the UI shows lettered tiles.

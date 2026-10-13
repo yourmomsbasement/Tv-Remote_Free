@@ -31,6 +31,7 @@ class DeviceCapabilities {
     this.playbackState = false,
     this.playbackPosition = false,
     this.appLaunch = false,
+    this.contentLaunch = false,
     this.appList = false,
     this.pairingRequired = false,
     this.voiceInput = false,
@@ -68,6 +69,9 @@ class DeviceCapabilities {
   /// Reports playback position and duration.
   final bool playbackPosition;
   final bool appLaunch;
+
+  /// Can open shared links (watchlist items), exactly or via the app.
+  final bool contentLaunch;
   final bool appList;
   final bool pairingRequired;
   final bool voiceInput;
@@ -99,6 +103,7 @@ class DeviceCapabilities {
     'playback_state': playbackState,
     'playback_position': playbackPosition,
     'app_launch': appLaunch,
+    'content_launch': contentLaunch,
     'app_list': appList,
     'media_controls': mediaControls,
     'channels': channels,
