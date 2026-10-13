@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/platform/haptics.dart';
+import '../../app/providers.dart';
+import '../../core/storage/app_icon_cache.dart';
+import '../applications/apps_panel.dart';
 import '../keyboard/search_history.dart';
 import '../profiles/profiles_screen.dart';
 import '../themes/theme_library.dart';
@@ -143,6 +146,8 @@ class SettingsScreen extends ConsumerWidget {
                 }
               },
             ),
+          if (ref.watch(appIconCacheProvider) case final cache?)
+            _IconCacheTile(cache: cache),
           ListTile(
             title: const Text('Touchpad sensitivity'),
             subtitle: Text(
@@ -177,4 +182,41 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Shows how much space saved app icons use, and clears them.
+class _IconCacheTile extends ConsumerStatefulWidget {
+  const _IconCacheTile({required this.cache});
+
+  final AppIconCache cache;
+
+  @override
+  ConsumerState<_IconCacheTile> createState() => _IconCacheTileState();
+}
+
+class _IconCacheTileState extends ConsumerState<_IconCacheTile> {
+  late Future<int> _size = widget.cache.sizeInBytes();
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<int>(
+    future: _size,
+    builder: (context, snapshot) {
+      final mb = (snapshot.data ?? 0) / (1024 * 1024);
+      return ListTile(
+        leading: const Icon(Icons.image_outlined),
+        title: const Text('Clear saved app icons'),
+        subtitle: Text(
+          snapshot.hasData
+              ? '${mb < 0.1 ? '<0.1' : mb.toStringAsFixed(1)} MB. Icons '
+                    'are fetched again from the TV when needed.'
+              : 'Calculating…',
+        ),
+        onTap: () async {
+          await widget.cache.clearAll();
+          ref.invalidate(appIconProvider);
+          setState(() => _size = widget.cache.sizeInBytes());
+        },
+      );
+    },
+  );
 }

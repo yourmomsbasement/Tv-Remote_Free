@@ -118,7 +118,10 @@ class FakeAdapter implements SmartTVAdapter {
   final icons = <String, Uint8List>{};
 
   @override
-  Future<Uint8List?> fetchAppIcon(TvApp app) async => icons[app.id];
+  Future<Uint8List?> fetchAppIcon(TvApp app) async {
+    calls.add('icon:${app.id}');
+    return icons[app.id];
+  }
 
   @override
   Future<void> movePointer(double dx, double dy) async =>

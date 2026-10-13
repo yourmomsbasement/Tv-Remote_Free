@@ -21,6 +21,7 @@ class SavedDevicesNotifier extends AsyncNotifier<List<DeviceRecord>> {
   /// Forgets the TV and its pairing secret.
   Future<void> remove(DeviceRecord device) async {
     await ref.read(credentialStoreProvider).delete(device.id);
+    await ref.read(appIconCacheProvider)?.clearDevice(device.id);
     await ref.read(deviceRepositoryProvider).deleteDevice(device.id);
     ref.invalidateSelf();
     await future;

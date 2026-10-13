@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/adapter/smart_tv_adapter.dart';
+import '../../app/providers.dart';
 import '../../core/errors.dart';
 import '../../core/platform/haptics.dart';
 import '../settings/app_settings.dart';
@@ -26,16 +27,34 @@ final tvAppsProvider = FutureProvider.autoDispose<List<TvApp>>((ref) async {
 
 /// App icons fetched from the TV, cached for the rest of the session so
 /// switching tabs does not download them again. Keyed by device and app.
+/// App icons: from the disk cache when fresh, otherwise from the TV (then
+/// cached). Kept in memory for the session as well. If the TV cannot be
+/// reached, an older cached icon is still shown.
 final appIconProvider =
     FutureProvider.family<
       Uint8List?,
       (String deviceId, String appId, String? iconUrl)
     >((ref, key) async {
       ref.keepAlive();
-      final (_, appId, iconUrl) = key;
-      return ref
-          .read(remoteSessionProvider.notifier)
-          .fetchAppIcon(TvApp(id: appId, name: '', iconUrl: iconUrl));
+      final (deviceId, appId, iconUrl) = key;
+      final cache = ref.read(appIconCacheProvider);
+      final cached = await cache?.read(deviceId, appId, iconUrl);
+      if (cached != null && cached.fresh) return cached.bytes;
+
+      final session = ref.read(remoteSessionProvider.notifier);
+      final fetched = await session.fetchAppIcon(
+        TvApp(id: appId, name: '', iconUrl: iconUrl),
+      );
+      if (fetched != null) {
+        await cache?.write(deviceId, appId, iconUrl, fetched);
+        return fetched;
+      }
+      if (cached?.bytes case final stale?) return stale;
+      // Only remember "no icon" when the TV actually answered.
+      if (ref.read(remoteSessionProvider).isConnected) {
+        await cache?.write(deviceId, appId, iconUrl, null);
+      }
+      return null;
     });
 
 class AppsPanel extends ConsumerWidget {
@@ -87,7 +106,12 @@ class AppsPanel extends ConsumerWidget {
           );
         }
         return RefreshIndicator(
-          onRefresh: () {
+          onRefresh: () async {
+            // Pulling down re-fetches this TV's icons too.
+            final deviceId = ref.read(remoteSessionProvider).device?.id;
+            if (deviceId != null) {
+              await ref.read(appIconCacheProvider)?.clearDevice(deviceId);
+            }
             ref.invalidate(appIconProvider);
             return ref.refresh(tvAppsProvider.future);
           },

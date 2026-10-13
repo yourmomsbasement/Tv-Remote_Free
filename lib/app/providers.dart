@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/adapter/protocol_driver.dart';
 import '../core/discovery/discovery_service.dart';
 import '../core/security/credential_store.dart';
+import '../core/storage/app_icon_cache.dart';
 import '../core/storage/device_repository.dart';
 import '../protocols/registry.dart';
 
@@ -23,3 +24,7 @@ final discoveryServiceProvider = Provider(
 final deviceRepositoryProvider = Provider<DeviceRepository>(
   (ref) => throw UnimplementedError('deviceRepositoryProvider not overridden'),
 );
+
+/// Disk cache for app icons; set up in main(). Null (no disk cache) in
+/// tests unless overridden.
+final appIconCacheProvider = Provider<AppIconCache?>((ref) => null);
