@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/devices/devices_screen.dart';
+import '../features/profiles/profile.dart';
+import '../features/profiles/profiles.dart';
 import '../features/remote/remote_session.dart';
 import '../features/remote/sleep_timer.dart';
 import '../core/platform/share_receiver.dart';
@@ -36,6 +38,15 @@ class _TvRemoteAppState extends ConsumerState<TvRemoteApp> {
     );
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => ShareReceiver.listen(_onShared),
+    );
+    // The active household profile's volume ceiling applies on every TV.
+    // Applied after the first frame: providers can't change during build.
+    void applyProfile(Profile profile) => ref
+        .read(remoteSessionProvider.notifier)
+        .setProfileVolumeLimit(profile.maxVolume);
+    ref.listenManual(activeProfileProvider, (_, p) => applyProfile(p));
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => applyProfile(ref.read(activeProfileProvider)),
     );
   }
 

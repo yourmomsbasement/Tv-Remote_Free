@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/platform/haptics.dart';
 import '../keyboard/search_history.dart';
+import '../profiles/profiles_screen.dart';
 import '../themes/theme_library.dart';
 import '../themes/themes_screen.dart';
 import 'app_settings.dart';
@@ -32,6 +33,15 @@ class SettingsScreen extends ConsumerWidget {
               onSelectionChanged: (s) =>
                   update(settings.copyWith(themeMode: s.first)),
             ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.family_restroom),
+            title: const Text('Household profiles'),
+            subtitle: const Text('Child mode, allowed apps, volume and hours'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const ProfilesScreen())),
           ),
           ListTile(
             leading: const Icon(Icons.palette_outlined),

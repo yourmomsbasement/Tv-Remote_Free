@@ -42,6 +42,7 @@ tested only against mock protocol servers. See the compatibility matrix.
 | Macros (power on, wait, keys, apps/inputs, volume, delays, text) with per-TV capability checks; sleep timer; per-TV volume limit | ✅ |
 | Now Playing card (progress on Roku), adaptive remote (playback controls while playing, touchpad hint in browsers) | ✅ |
 | Watchlist: save links (Android share sheet or paste), open on the TV (exact on Android TV; YouTube/Netflix deep links on Roku and LG), backup/restore | ✅ |
+| Household profiles: child mode with PIN, simple remote, allowed apps, volume ceiling, viewing hours (phone-side only) | ✅ |
 | Samsung, Fire TV, Apple TV adapters | — |
 | Widgets, Quick Settings tile, IR, voice | — |
 

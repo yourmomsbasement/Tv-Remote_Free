@@ -5,8 +5,26 @@ import '../../core/capabilities/remote_key.dart';
 import '../../ui/components/dpad.dart';
 import '../../ui/components/remote_button.dart';
 import '../settings/app_settings.dart';
+import '../profiles/profiles.dart';
 import 'now_playing_card.dart';
 import 'remote_session.dart';
+
+/// Buttons kept on a profile's simple remote.
+const simpleRemoteKeys = {
+  RemoteKey.up,
+  RemoteKey.down,
+  RemoteKey.left,
+  RemoteKey.right,
+  RemoteKey.select,
+  RemoteKey.back,
+  RemoteKey.home,
+  RemoteKey.volumeUp,
+  RemoteKey.volumeDown,
+  RemoteKey.mute,
+  RemoteKey.play,
+  RemoteKey.pause,
+  RemoteKey.playPause,
+};
 
 /// The main button layout. Buttons the TV does not support are hidden.
 class RemotePanel extends ConsumerWidget {
@@ -23,6 +41,7 @@ class RemotePanel extends ConsumerWidget {
     final caps = session.capabilities;
     final connected = session.isConnected;
 
+    final simple = ref.watch(activeProfileProvider).simplified;
     Widget? key(
       RemoteKey key,
       IconData icon,
@@ -31,6 +50,7 @@ class RemotePanel extends ConsumerWidget {
       bool filled = false,
     }) {
       if (!caps.supportsKey(key)) return null;
+      if (simple && !simpleRemoteKeys.contains(key)) return null;
       return RemoteButton(
         icon: icon,
         label: label,
@@ -55,26 +75,33 @@ class RemotePanel extends ConsumerWidget {
     }
 
     // Power: prefer a toggle, else separate on/off as supported.
-    final powerButtons = <Widget?>[
-      if (caps.supportsKey(RemoteKey.power))
-        key(RemoteKey.power, Icons.power_settings_new, 'Power', filled: true)
-      else ...[
-        if (caps.powerOff)
-          key(
-            RemoteKey.powerOff,
-            Icons.power_settings_new,
-            'Turn off',
-            filled: true,
-          ),
-      ],
-      if (session.canPowerOn && !caps.supportsKey(RemoteKey.power))
-        RemoteButton(
-          icon: Icons.power,
-          label: 'Turn on',
-          haptics: settings.hapticStrength,
-          onPressed: remote.powerOn,
-        ),
-    ];
+    final powerButtons = simple
+        ? const <Widget?>[]
+        : <Widget?>[
+            if (caps.supportsKey(RemoteKey.power))
+              key(
+                RemoteKey.power,
+                Icons.power_settings_new,
+                'Power',
+                filled: true,
+              )
+            else ...[
+              if (caps.powerOff)
+                key(
+                  RemoteKey.powerOff,
+                  Icons.power_settings_new,
+                  'Turn off',
+                  filled: true,
+                ),
+            ],
+            if (session.canPowerOn && !caps.supportsKey(RemoteKey.power))
+              RemoteButton(
+                icon: Icons.power,
+                label: 'Turn on',
+                haptics: settings.hapticStrength,
+                onPressed: remote.powerOn,
+              ),
+          ];
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -153,10 +180,10 @@ class RemotePanel extends ConsumerWidget {
                   label: 'Volume',
                   child: Slider(
                     value: session.volume!
-                        .clamp(0, session.volumeLimit ?? 100)
+                        .clamp(0, session.effectiveVolumeLimit ?? 100)
                         .toDouble(),
-                    max: (session.volumeLimit ?? 100).toDouble(),
-                    divisions: session.volumeLimit ?? 100,
+                    max: (session.effectiveVolumeLimit ?? 100).toDouble(),
+                    divisions: session.effectiveVolumeLimit ?? 100,
                     label: '${session.volume}',
                     onChanged: connected
                         ? (v) => remote.setVolume(v.round())

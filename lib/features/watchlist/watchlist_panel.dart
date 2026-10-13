@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/content/content_link.dart';
 import '../../core/platform/haptics.dart';
+import '../profiles/profiles.dart';
 import '../remote/remote_session.dart';
 import '../settings/app_settings.dart';
 import 'watchlist.dart';
@@ -79,6 +80,18 @@ class WatchlistPanel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Links can open any app, so a profile limited to certain apps skips it.
+    if (ref.watch(activeProfileProvider).allowedApps != null) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Text(
+            'The watchlist is not available in this profile.',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
     final items = ref.watch(watchlistProvider).value ?? const <WatchItem>[];
     final session = ref.watch(remoteSessionProvider);
     final canOpen = session.isConnected && session.capabilities.contentLaunch;

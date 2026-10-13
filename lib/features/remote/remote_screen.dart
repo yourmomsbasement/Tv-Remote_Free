@@ -8,6 +8,9 @@ import '../settings/app_settings.dart';
 import '../settings/settings_screen.dart';
 import '../touchpad/touchpad_panel.dart';
 import '../macros/macros_screen.dart';
+import '../profiles/profile.dart';
+import '../profiles/profiles.dart';
+import '../profiles/profiles_screen.dart';
 import '../watchlist/watchlist_panel.dart';
 import 'pin_dialog.dart';
 import 'sleep_timer.dart';
@@ -58,6 +61,12 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _keyboardFocus.requestFocus();
     });
+  }
+
+  Future<void> _openSettings(BuildContext context) async {
+    if (!await requireParent(context, ref) || !context.mounted) return;
+    await Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
   }
 
   Future<void> _showSleepTimer(BuildContext context) async {
@@ -112,6 +121,7 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen>
   @override
   Widget build(BuildContext context) {
     final session = ref.watch(remoteSessionProvider);
+    final profile = ref.watch(activeProfileProvider);
 
     // Automatic keyboard presentation when the TV reports a focused field.
     ref.listen(remoteSessionProvider.select((s) => s.textFieldFocused), (
@@ -168,19 +178,26 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen>
               onPressed: _openKeyboard,
             ),
           IconButton(
-            tooltip: 'Macros',
-            icon: const Icon(Icons.auto_awesome_outlined),
-            onPressed: () => Navigator.of(context)
-                .push(MaterialPageRoute(builder: (_) => const MacrosScreen())),
+            tooltip: 'Profile: ${profile.name}',
+            icon: Icon(
+              profile.child ? Icons.child_care : Icons.account_circle_outlined,
+            ),
+            onPressed: () => showProfileSwitcher(context, ref),
           ),
+          if (!profile.child)
+            IconButton(
+              tooltip: 'Macros',
+              icon: const Icon(Icons.auto_awesome_outlined),
+              onPressed: () => Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const MacrosScreen())),
+            ),
           PopupMenuButton<String>(
             tooltip: 'More',
             onSelected: (action) => switch (action) {
               'sleep' => _showSleepTimer(context),
               'volume' => _showVolumeLimit(context),
-              'settings' => Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+              'settings' => _openSettings(context),
               _ => null,
             },
             itemBuilder: (_) => [
@@ -225,23 +242,25 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen>
         ),
       ),
       body: _ThemedBackground(
-        child: Column(
-          children: [
-            _ConnectionBanner(session: session),
-            const _SleepTimerBar(),
-            Expanded(
-              child: TabBarView(
-                controller: _tabs,
-                children: [
-                  RemotePanel(onOpenTouchpad: () => _tabs.animateTo(1)),
-                  const TouchpadPanel(),
-                  KeyboardPanel(focusNode: _keyboardFocus),
-                  const AppsPanel(),
-                  const WatchlistPanel(),
-                ],
+        child: _ScheduleLock(
+          child: Column(
+            children: [
+              _ConnectionBanner(session: session),
+              const _SleepTimerBar(),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabs,
+                  children: [
+                    RemotePanel(onOpenTouchpad: () => _tabs.animateTo(1)),
+                    const TouchpadPanel(),
+                    KeyboardPanel(focusNode: _keyboardFocus),
+                    const AppsPanel(),
+                    const WatchlistPanel(),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -434,4 +453,62 @@ class _VolumeLimitDialogState extends State<_VolumeLimitDialog> {
       ),
     ],
   );
+}
+
+/// Locks the remote outside a child profile's viewing hours. Re-checked
+/// every minute; a parent can switch profile with the PIN.
+class _ScheduleLock extends ConsumerWidget {
+  const _ScheduleLock({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profile = ref.watch(activeProfileProvider);
+    if (profile.schedule == null) return child;
+    return StreamBuilder<void>(
+      stream: Stream<void>.periodic(const Duration(minutes: 1)),
+      builder: (context, _) => profile.allowsNow(DateTime.now())
+          ? child
+          : _LockedView(profile: profile),
+    );
+  }
+}
+
+class _LockedView extends ConsumerWidget {
+  const _LockedView({required this.profile});
+
+  final Profile profile;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = profile.schedule!;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.bedtime, size: 56),
+            const SizedBox(height: 16),
+            Text(
+              'TV time is over',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${profile.name} can use the remote from '
+              '${s.start.format(context)} to ${s.end.format(context)}.',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            OutlinedButton(
+              onPressed: () => showProfileSwitcher(context, ref),
+              child: const Text('Switch profile'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

@@ -7,6 +7,7 @@ import '../../core/adapter/smart_tv_adapter.dart';
 import '../../core/errors.dart';
 import '../../core/platform/haptics.dart';
 import '../settings/app_settings.dart';
+import '../profiles/profiles.dart';
 import '../remote/remote_session.dart';
 import 'app_links.dart';
 
@@ -42,6 +43,7 @@ class AppsPanel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final profile = ref.watch(activeProfileProvider);
     final session = ref.watch(remoteSessionProvider);
     if (!session.capabilities.appList && session.isConnected) {
       if (!session.capabilities.appLaunch) {
@@ -50,7 +52,10 @@ class AppsPanel extends ConsumerWidget {
         );
       }
       return _AppGrid(
-        apps: knownAppLinks,
+        apps: [
+          for (final a in knownAppLinks)
+            if (profile.allowsApp(a.name)) a,
+        ],
         header: 'This TV cannot list its apps. These open if installed.',
       );
     }
@@ -86,7 +91,12 @@ class AppsPanel extends ConsumerWidget {
             ref.invalidate(appIconProvider);
             return ref.refresh(tvAppsProvider.future);
           },
-          child: _AppGrid(apps: list),
+          child: _AppGrid(
+            apps: [
+              for (final a in list)
+                if (profile.allowsApp(a.name)) a,
+            ],
+          ),
         );
       },
     );

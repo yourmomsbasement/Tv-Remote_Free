@@ -7,6 +7,7 @@ import '../../app/providers.dart';
 import '../../core/discovery/discovered_device.dart';
 import '../../core/errors.dart';
 import '../../core/storage/device_record.dart';
+import '../profiles/profiles_screen.dart';
 import '../remote/remote_screen.dart';
 import '../remote/remote_session.dart';
 import '../settings/settings_screen.dart';
@@ -86,6 +87,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
   }
 
   Future<void> _forget(DeviceRecord device) async {
+    if (!await requireParent(context, ref) || !mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -145,9 +147,14 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
           IconButton(
             tooltip: 'Settings',
             icon: const Icon(Icons.settings_outlined),
-            onPressed: () => Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+            onPressed: () async {
+              if (!await requireParent(context, ref) || !context.mounted) {
+                return;
+              }
+              await Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
+            },
           ),
         ],
       ),

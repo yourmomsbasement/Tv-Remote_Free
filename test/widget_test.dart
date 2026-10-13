@@ -11,6 +11,8 @@ import 'package:tv_remote_free/core/discovery/discovery_service.dart';
 import 'package:tv_remote_free/core/security/credential_store.dart';
 import 'package:tv_remote_free/core/storage/device_record.dart';
 import 'package:tv_remote_free/core/storage/device_repository.dart';
+import 'package:tv_remote_free/features/profiles/profile.dart';
+import 'package:tv_remote_free/features/profiles/profiles.dart';
 import 'package:tv_remote_free/features/themes/theme_definition.dart';
 import 'package:tv_remote_free/features/themes/themes_screen.dart';
 import 'package:tv_remote_free/ui/themes/remote_style.dart';
@@ -23,13 +25,15 @@ void main() {
   late DeviceRepository repo;
   late FakeAdapter tv;
 
-  Future<void> pumpApp(WidgetTester tester) async {
+  Future<void> pumpApp(WidgetTester tester, {CredentialStore? secrets}) async {
     final drivers = [FakeDriver(tv)];
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           deviceRepositoryProvider.overrideWithValue(repo),
-          credentialStoreProvider.overrideWithValue(InMemoryCredentialStore()),
+          credentialStoreProvider.overrideWithValue(
+            secrets ?? InMemoryCredentialStore(),
+          ),
           driversProvider.overrideWithValue(drivers),
           discoveryServiceProvider.overrideWithValue(
             DiscoveryService(drivers, ssdp: NoSsdp()),
@@ -569,4 +573,99 @@ void main() {
 
     await tester.runAsync(() => repo.close());
   });
+
+  testWidgets(
+    'child profile: simple remote, allowed apps, PIN-locked settings',
+    (tester) async {
+      tv.capabilities = DeviceCapabilities(
+        keys: {...tv.capabilities.keys, RemoteKey.input, RemoteKey.volumeUp},
+        textInput: true,
+        appList: true,
+        appLaunch: true,
+      );
+      tv.apps = const [
+        TvApp(id: 'yk', name: 'YouTube Kids'),
+        TvApp(id: 'nf', name: 'Netflix'),
+      ];
+      final secrets = InMemoryCredentialStore();
+      // A child profile, already active, protected by PIN 2468.
+      await tester.runAsync(() async {
+        repo = await openTestRepository();
+        await repo.upsertDevice(
+          const DeviceRecord(
+            id: 'fake:1',
+            name: 'Den TV',
+            protocol: 'fake',
+            ipAddress: '10.0.0.5',
+          ),
+        );
+        final container = ProviderContainer(
+          overrides: [
+            deviceRepositoryProvider.overrideWithValue(repo),
+            credentialStoreProvider.overrideWithValue(secrets),
+          ],
+        );
+        container.listen(profilesProvider, (_, _) {});
+        final profiles = container.read(profilesProvider.notifier);
+        await profiles.save(
+          const Profile(
+            id: 'kids',
+            name: 'Kids',
+            child: true,
+            simplified: true,
+            allowedApps: {'YouTube Kids'},
+          ),
+        );
+        await profiles.setPin('2468');
+        await profiles.activate('kids');
+        container.dispose();
+      });
+      await pumpApp(tester, secrets: secrets);
+      Future<void> settle() async {
+        for (var i = 0; i < 6; i++) {
+          await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 20)),
+          );
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+      }
+
+      await tester.tap(find.text('Den TV'));
+      await settle();
+      // Simple remote: no Input button; volume stays.
+      expect(find.bySemanticsLabel('Input'), findsNothing);
+      expect(find.bySemanticsLabel('Volume up'), findsOneWidget);
+      expect(find.byTooltip('Macros'), findsNothing);
+
+      await tester.tap(find.widgetWithText(Tab, 'Apps'));
+      await settle();
+      expect(find.text('YouTube Kids'), findsOneWidget);
+      expect(find.text('Netflix'), findsNothing);
+
+      // Settings needs the PIN.
+      await tester.tap(find.byTooltip('More'));
+      await settle();
+      await tester.tap(find.text('Settings'));
+      await settle();
+      expect(find.text('Enter household PIN'), findsOneWidget);
+      await tester.enterText(find.byType(TextField).last, '1111');
+      await tester.pump();
+      await tester.tap(find.text('OK'));
+      await settle();
+      expect(find.text('Wrong PIN'), findsOneWidget);
+      expect(find.text('Household profiles'), findsNothing);
+
+      await tester.tap(find.byTooltip('More'));
+      await settle();
+      await tester.tap(find.text('Settings'));
+      await settle();
+      await tester.enterText(find.byType(TextField).last, '2468');
+      await tester.pump();
+      await tester.tap(find.text('OK'));
+      await settle();
+      expect(find.text('Household profiles'), findsOneWidget);
+
+      await tester.runAsync(() => repo.close());
+    },
+  );
 }

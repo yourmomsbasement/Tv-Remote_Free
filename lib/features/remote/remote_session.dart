@@ -28,6 +28,7 @@ class RemoteSessionState {
     this.muted,
     this.textFieldFocused = false,
     this.volumeLimit,
+    this.profileVolumeLimit,
     this.activity,
   });
 
@@ -54,7 +55,20 @@ class RemoteSessionState {
   bool get canLimitVolume => capabilities.volumeSet || volume != null;
 
   bool get atVolumeLimit =>
-      volumeLimit != null && volume != null && volume! >= volumeLimit!;
+      effectiveVolumeLimit != null &&
+      volume != null &&
+      volume! >= effectiveVolumeLimit!;
+
+  /// The household profile's ceiling, applied on every TV.
+  final int? profileVolumeLimit;
+
+  /// The lower of this TV's limit and the profile's.
+  int? get effectiveVolumeLimit => switch ((volumeLimit, profileVolumeLimit)) {
+    (null, null) => null,
+    (final int a, null) => a,
+    (null, final int b) => b,
+    (final int a, final int b) => a < b ? a : b,
+  };
 
   bool get isConnected => status == ConnectionStatus.connected;
 
@@ -75,6 +89,7 @@ class RemoteSessionState {
     bool? muted,
     bool? textFieldFocused,
     int? Function()? volumeLimit,
+    int? Function()? profileVolumeLimit,
     MediaActivity? Function()? activity,
   }) => RemoteSessionState(
     device: device ?? this.device,
@@ -88,6 +103,9 @@ class RemoteSessionState {
     muted: muted ?? this.muted,
     textFieldFocused: textFieldFocused ?? this.textFieldFocused,
     volumeLimit: volumeLimit == null ? this.volumeLimit : volumeLimit(),
+    profileVolumeLimit: profileVolumeLimit == null
+        ? this.profileVolumeLimit
+        : profileVolumeLimit(),
     activity: activity == null ? this.activity : activity(),
   );
 }
@@ -124,7 +142,10 @@ class RemoteSession extends Notifier<RemoteSessionState> {
     _wantConnected = true;
     _backoff.reset();
     _reconnectTimer?.cancel();
-    state = RemoteSessionState(device: device);
+    state = RemoteSessionState(
+      device: device,
+      profileVolumeLimit: state.profileVolumeLimit,
+    );
     await _open(device);
   }
 
@@ -345,7 +366,7 @@ class RemoteSession extends Notifier<RemoteSessionState> {
       state = state.copyWith(
         error: () => TvRemoteException(
           TvErrorCode.forbidden,
-          'Volume limit (${state.volumeLimit}) reached',
+          'Volume limit (${state.effectiveVolumeLimit}) reached',
         ),
       );
       return Future.value(false);
@@ -360,9 +381,10 @@ class RemoteSession extends Notifier<RemoteSessionState> {
   Future<bool> setVolume(int level) => _gated(
     state.capabilities.volumeSet,
     'Setting the volume',
-    (a) => a.setVolume(
-      state.volumeLimit == null ? level : level.clamp(0, state.volumeLimit!),
-    ),
+    (a) => a.setVolume(switch (state.effectiveVolumeLimit) {
+      null => level,
+      final limit => level.clamp(0, limit),
+    }),
   );
 
   static String _volumeLimitKey(String deviceId) => 'volume_limit.$deviceId';
@@ -373,6 +395,12 @@ class RemoteSession extends Notifier<RemoteSessionState> {
         .getSetting(_volumeLimitKey(deviceId));
     final limit = int.tryParse(raw ?? '');
     state = state.copyWith(volumeLimit: () => limit);
+    _enforceVolumeLimit();
+  }
+
+  /// Applies the active household profile's volume ceiling.
+  void setProfileVolumeLimit(int? limit) {
+    state = state.copyWith(profileVolumeLimit: () => limit);
     _enforceVolumeLimit();
   }
 
@@ -391,7 +419,7 @@ class RemoteSession extends Notifier<RemoteSessionState> {
   /// Turns the TV back down if it goes over the limit (e.g. using the TV's
   /// own remote), on TVs where the volume can be set.
   void _enforceVolumeLimit() {
-    final limit = state.volumeLimit;
+    final limit = state.effectiveVolumeLimit;
     final volume = state.volume;
     if (limit == null || volume == null || volume <= limit) return;
     if (state.isConnected && state.capabilities.volumeSet) {
