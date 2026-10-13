@@ -27,6 +27,9 @@ class DeviceCapabilities {
     this.textFieldDetection = false,
     this.pointer = false,
     this.scroll = false,
+    this.activity = false,
+    this.playbackState = false,
+    this.playbackPosition = false,
     this.appLaunch = false,
     this.appList = false,
     this.pairingRequired = false,
@@ -55,6 +58,15 @@ class DeviceCapabilities {
 
   /// Pointer-style scrolling (two-finger drag on the touchpad).
   final bool scroll;
+
+  /// Reports the foreground app.
+  final bool activity;
+
+  /// Reports playing/paused.
+  final bool playbackState;
+
+  /// Reports playback position and duration.
+  final bool playbackPosition;
   final bool appLaunch;
   final bool appList;
   final bool pairingRequired;
@@ -83,6 +95,9 @@ class DeviceCapabilities {
     'text_field_detection': textFieldDetection,
     'pointer': pointer,
     'scroll': scroll,
+    'activity': activity,
+    'playback_state': playbackState,
+    'playback_position': playbackPosition,
     'app_launch': appLaunch,
     'app_list': appList,
     'media_controls': mediaControls,

@@ -56,6 +56,60 @@ class TextFieldFocusChanged extends DeviceEvent {
   final String? inputType;
 }
 
+enum PlaybackState { unknown, stopped, buffering, playing, paused }
+
+/// What the TV is doing: the foreground app and, where reported, playback.
+class MediaActivity {
+  const MediaActivity({
+    this.appId,
+    this.appName,
+    this.state = PlaybackState.unknown,
+    this.position,
+    this.duration,
+    this.isLive = false,
+    required this.receivedAt,
+  });
+
+  final String? appId;
+  final String? appName;
+  final PlaybackState state;
+
+  /// Playback position when reported (Roku), as of [receivedAt].
+  final Duration? position;
+  final Duration? duration;
+  final bool isLive;
+  final DateTime receivedAt;
+
+  bool get hasMedia =>
+      state == PlaybackState.playing ||
+      state == PlaybackState.paused ||
+      state == PlaybackState.buffering;
+
+  bool get hasTimeline =>
+      !isLive &&
+      position != null &&
+      duration != null &&
+      duration! > Duration.zero;
+
+  /// Position extrapolated to [now] while playing.
+  Duration? positionAt(DateTime now) {
+    final p = position;
+    if (p == null) return null;
+    if (state != PlaybackState.playing) return p;
+    final estimate = p + now.difference(receivedAt);
+    final d = duration;
+    return d != null && estimate > d ? d : estimate;
+  }
+
+  /// Web browsers are best driven with the touchpad.
+  bool get isBrowser => (appId ?? '').toLowerCase().contains('browser');
+}
+
+class ActivityChanged extends DeviceEvent {
+  const ActivityChanged(this.activity);
+  final MediaActivity activity;
+}
+
 class VolumeChanged extends DeviceEvent {
   const VolumeChanged({this.level, this.muted});
   final int? level;

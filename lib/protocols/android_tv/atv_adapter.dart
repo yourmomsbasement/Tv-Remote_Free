@@ -359,6 +359,20 @@ class AndroidTvAdapter implements SmartTVAdapter {
         fieldCounter: edit.integer(2),
         value: edit.messages(3).lastOrNull?.message(2)?.string(3),
       );
+    } else if (message.message(RemoteMsg.imeKeyInject) case final inject?) {
+      // Sent when the foreground app changes: app_info.app_package.
+      final package = inject.message(1)?.string(12);
+      if (package != null && package.isNotEmpty) {
+        _emit(
+          ActivityChanged(
+            MediaActivity(
+              appId: package,
+              appName: package,
+              receivedAt: DateTime.now(),
+            ),
+          ),
+        );
+      }
     } else if (message.message(RemoteMsg.imeShowRequest) case final show?) {
       final field = show.message(2);
       // A keyboard is up on the TV: a (new) text field has focus. Emit a
@@ -432,6 +446,7 @@ class AndroidTvAdapter implements SmartTVAdapter {
           ? TextInputStrategy.nativeTextApi
           : TextInputStrategy.directionalKeyboard,
       textFieldDetection: ime,
+      activity: ime,
       appLaunch: (_features & AtvFeature.appLink) != 0,
       pairingRequired: true,
     );

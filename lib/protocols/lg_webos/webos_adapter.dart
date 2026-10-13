@@ -41,6 +41,11 @@ class WebOsAdapter implements SmartTVAdapter {
 
   /// Icon paths per app from the last app list, largest first.
   final _iconPaths = <String, List<String>>{};
+
+  /// App titles from the last app list, for naming the foreground app.
+  final _appTitles = <String, String>{};
+  String? _foregroundApp;
+  PlaybackState _playback = PlaybackState.unknown;
   final _pending = <String, Completer<Map<String, Object?>>>{};
   final _subscriptions = <String, void Function(Map<String, Object?>)>{};
 
@@ -174,6 +179,8 @@ class WebOsAdapter implements SmartTVAdapter {
     textFieldDetection: true,
     pointer: true,
     scroll: true,
+    activity: true,
+    playbackState: true,
     appLaunch: true,
     appList: true,
     pairingRequired: true,
@@ -190,6 +197,20 @@ class WebOsAdapter implements SmartTVAdapter {
     unawaited(
       _subscribe('ssap://audio/getVolume', _onVolumeEvent).catchError((_) {}),
     );
+    unawaited(
+      _subscribe(
+        'ssap://com.webos.applicationManager/getForegroundAppInfo',
+        _onForegroundApp,
+      ).catchError((_) {}),
+    );
+    unawaited(
+      _subscribe(
+        'ssap://com.webos.media/getForegroundAppInfo',
+        _onMediaState,
+      ).catchError((_) {}),
+    );
+    // Titles for naming the foreground app; best effort.
+    unawaited(listApps().then((_) {}, onError: (_) {}));
     unawaited(
       _request('ssap://com.webos.service.connectionmanager/getinfo')
           .then((info) {
@@ -224,6 +245,44 @@ class WebOsAdapter implements SmartTVAdapter {
         focused: focused,
         sensitive: widget['hiddenText'] == true || contentType == 'password',
         inputType: contentType,
+      ),
+    );
+  }
+
+  void _onForegroundApp(Map<String, Object?> payload) {
+    final appId = payload['appId'];
+    if (appId is! String) return;
+    if (appId != _foregroundApp) _playback = PlaybackState.unknown;
+    _foregroundApp = appId.isEmpty ? null : appId;
+    _emitActivity();
+  }
+
+  /// `foregroundAppInfo` lists media sessions with a `playState` such as
+  /// "playing", "paused", "loaded" or "unloaded".
+  void _onMediaState(Map<String, Object?> payload) {
+    final sessions = payload['foregroundAppInfo'];
+    if (sessions is! List) return;
+    final current = sessions.whereType<Map>().lastOrNull;
+    _playback = switch (current?['playState']) {
+      'playing' => PlaybackState.playing,
+      'paused' => PlaybackState.paused,
+      'buffering' || 'loaded' => PlaybackState.buffering,
+      null || 'unloaded' || 'stopped' => PlaybackState.stopped,
+      _ => PlaybackState.unknown,
+    };
+    _emitActivity();
+  }
+
+  void _emitActivity() {
+    final appId = _foregroundApp;
+    _emit(
+      ActivityChanged(
+        MediaActivity(
+          appId: appId,
+          appName: appId == null ? null : (_appTitles[appId] ?? appId),
+          state: _playback,
+          receivedAt: DateTime.now(),
+        ),
       ),
     );
   }
@@ -534,6 +593,7 @@ class WebOsAdapter implements SmartTVAdapter {
           if (p[key] case final String path when path.isNotEmpty) path,
       ];
       _iconPaths[id] = icons;
+      if (p['title'] case final String title) _appTitles[id] = title;
       apps.add(
         TvApp(
           id: id,

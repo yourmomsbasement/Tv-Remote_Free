@@ -228,7 +228,7 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen>
               child: TabBarView(
                 controller: _tabs,
                 children: [
-                  const RemotePanel(),
+                  RemotePanel(onOpenTouchpad: () => _tabs.animateTo(1)),
                   const TouchpadPanel(),
                   KeyboardPanel(focusNode: _keyboardFocus),
                   const AppsPanel(),
@@ -243,7 +243,10 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen>
 
   static String _statusLabel(RemoteSessionState session) =>
       switch (session.status) {
-        ConnectionStatus.connected => 'Connected',
+        ConnectionStatus.connected => switch (session.activity?.appName) {
+          final String app when app.isNotEmpty => 'Connected · $app',
+          _ => 'Connected',
+        },
         ConnectionStatus.connecting => 'Connecting…',
         ConnectionStatus.awaitingPairing => 'Waiting for approval on TV',
         ConnectionStatus.disconnected =>

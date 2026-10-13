@@ -27,6 +27,7 @@ class RemoteSessionState {
     this.muted,
     this.textFieldFocused = false,
     this.volumeLimit,
+    this.activity,
   });
 
   final DeviceRecord? device;
@@ -44,6 +45,9 @@ class RemoteSessionState {
 
   /// Highest volume allowed for this TV, or null for no limit.
   final int? volumeLimit;
+
+  /// What the TV is doing, where it reports it.
+  final MediaActivity? activity;
 
   /// A limit needs a TV that reports its volume.
   bool get canLimitVolume => capabilities.volumeSet || volume != null;
@@ -70,6 +74,7 @@ class RemoteSessionState {
     bool? muted,
     bool? textFieldFocused,
     int? Function()? volumeLimit,
+    MediaActivity? Function()? activity,
   }) => RemoteSessionState(
     device: device ?? this.device,
     status: status ?? this.status,
@@ -82,6 +87,7 @@ class RemoteSessionState {
     muted: muted ?? this.muted,
     textFieldFocused: textFieldFocused ?? this.textFieldFocused,
     volumeLimit: volumeLimit == null ? this.volumeLimit : volumeLimit(),
+    activity: activity == null ? this.activity : activity(),
   );
 }
 
@@ -196,6 +202,8 @@ class RemoteSession extends Notifier<RemoteSessionState> {
       case TextFieldFocusChanged():
         keyboard.onTextFieldFocus(event);
         state = state.copyWith(textFieldFocused: event.focused);
+      case ActivityChanged(:final activity):
+        state = state.copyWith(activity: () => activity);
       case VolumeChanged(:final level, :final muted):
         state = state.copyWith(volume: level, muted: muted);
         _enforceVolumeLimit();
@@ -206,6 +214,7 @@ class RemoteSession extends Notifier<RemoteSessionState> {
           state = state.copyWith(
             status: ConnectionStatus.disconnected,
             textFieldFocused: false,
+            activity: () => null,
           );
           _scheduleReconnect();
         }
@@ -251,6 +260,7 @@ class RemoteSession extends Notifier<RemoteSessionState> {
       awaitingPairing: false,
       awaitingPin: false,
       textFieldFocused: false,
+      activity: () => null,
     );
   }
 

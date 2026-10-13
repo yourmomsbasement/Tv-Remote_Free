@@ -24,11 +24,18 @@ class RokuAdapter implements SmartTVAdapter {
     this.port = 8060,
     http.Client? client,
     this.timeout = const Duration(seconds: 3),
+    this.activityInterval = const Duration(seconds: 2),
   }) : _client = client ?? http.Client();
 
   final String host;
   final int port;
   final Duration timeout;
+
+  /// How often to poll what the TV is playing while connected.
+  final Duration activityInterval;
+  Timer? _activityTimer;
+  bool _polling = false;
+  String? _lastActivityKey;
   final http.Client _client;
   final _events = StreamController<DeviceEvent>.broadcast();
   late final _images = TvImageFetcher(host);
@@ -130,6 +137,7 @@ class RokuAdapter implements SmartTVAdapter {
         ),
       );
       _setStatus(ConnectionStatus.connected);
+      _startActivityPolling();
     } catch (e) {
       _setStatus(ConnectionStatus.disconnected, error: e);
       rethrow;
@@ -148,6 +156,9 @@ class RokuAdapter implements SmartTVAdapter {
       powerOn: keys.contains(RemoteKey.powerOn),
       textInput: true,
       textInputStrategy: TextInputStrategy.characterEvents,
+      activity: true,
+      playbackState: true,
+      playbackPosition: true,
       appLaunch: true,
       appList: true,
     );
@@ -155,6 +166,8 @@ class RokuAdapter implements SmartTVAdapter {
 
   @override
   Future<void> disconnect() async {
+    _activityTimer?.cancel();
+    _activityTimer = null;
     if (_status != ConnectionStatus.disconnected) {
       _setStatus(ConnectionStatus.disconnected);
     }
@@ -261,6 +274,81 @@ class RokuAdapter implements SmartTVAdapter {
   Future<void> launchApp(String appId) async {
     _requireConnected();
     await _send('POST', '/launch/${Uri.encodeComponent(appId)}');
+  }
+
+  /// ECP has no push events, so poll the media player (and the active app
+  /// while nothing plays). Failures are ignored; commands report errors.
+  void _startActivityPolling() {
+    _activityTimer?.cancel();
+    _activityTimer = Timer.periodic(activityInterval, (_) => pollActivity());
+    unawaited(pollActivity());
+  }
+
+  Future<void> pollActivity() async {
+    if (_polling || _status != ConnectionStatus.connected) return;
+    _polling = true;
+    try {
+      final player = parseMediaPlayer(
+        (await _send('GET', '/query/media-player')).body,
+        DateTime.now(),
+      );
+      var activity = player;
+      if (!player.hasMedia) {
+        final app = parseActiveApp(
+          (await _send('GET', '/query/active-app')).body,
+        );
+        activity = MediaActivity(
+          appId: app.$1,
+          appName: app.$2,
+          state: player.state,
+          receivedAt: player.receivedAt,
+        );
+      }
+      // Emit on change, and on every poll while playing (position moves).
+      final key = '${activity.appId}|${activity.state}';
+      if (key != _lastActivityKey || activity.hasMedia) {
+        _lastActivityKey = key;
+        if (!_events.isClosed) _events.add(ActivityChanged(activity));
+      }
+    } on Object {
+      // Older firmware or a channel without media-player support.
+    } finally {
+      _polling = false;
+    }
+  }
+
+  static Duration? _ms(String? text) {
+    final match = RegExp(r'(\d+)').firstMatch(text ?? '');
+    return match == null ? null : Duration(milliseconds: int.parse(match[1]!));
+  }
+
+  /// Parses `GET /query/media-player`.
+  static MediaActivity parseMediaPlayer(String xmlText, DateTime receivedAt) {
+    final player = XmlDocument.parse(xmlText).rootElement;
+    final plugin = player.getElement('plugin');
+    String? text(String name) => player.getElement(name)?.innerText.trim();
+    return MediaActivity(
+      appId: plugin?.getAttribute('id'),
+      appName: plugin?.getAttribute('name'),
+      state: switch (player.getAttribute('state')) {
+        'play' => PlaybackState.playing,
+        'pause' => PlaybackState.paused,
+        'buffer' || 'startup' || 'open' => PlaybackState.buffering,
+        'stop' || 'close' || 'none' => PlaybackState.stopped,
+        _ => PlaybackState.unknown,
+      },
+      position: _ms(text('position')),
+      duration: _ms(text('duration')),
+      isLive: text('is_live') == 'true',
+      receivedAt: receivedAt,
+    );
+  }
+
+  /// Parses `GET /query/active-app`: (app id, name); the home screen has no
+  /// id.
+  static (String?, String?) parseActiveApp(String xmlText) {
+    final app = XmlDocument.parse(xmlText).findAllElements('app').firstOrNull;
+    return (app?.getAttribute('id'), app?.innerText.trim());
   }
 
   @override

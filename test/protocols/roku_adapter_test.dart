@@ -37,6 +37,7 @@ class MockRoku {
   final requests = <String>[];
   bool isTv = true;
   bool forbidKeys = false;
+  String mediaPlayer = '<player error="false" state="close"/>';
 
   Future<void> start() async {
     server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
@@ -47,6 +48,10 @@ class MockRoku {
       final res = req.response;
       if (req.uri.path == '/query/device-info') {
         res.write(deviceInfo(isTv: isTv));
+      } else if (req.uri.path == '/query/media-player') {
+        res.write(mediaPlayer);
+      } else if (req.uri.path == '/query/active-app') {
+        res.write('<active-app><app>Roku</app></active-app>');
       } else if (req.uri.path == '/query/icon/12') {
         res.headers.contentType = ContentType('image', 'png');
         res.add([0x89, 0x50, 0x4E, 0x47]);
@@ -222,5 +227,73 @@ void main() {
     // Missing icons come back as null rather than throwing.
     final youtube = apps.firstWhere((a) => a.id == '837');
     expect(await adapter.fetchAppIcon(youtube), isNull);
+  });
+
+  test('parses the media player and active app', () {
+    final now = DateTime(2026);
+    final a = RokuAdapter.parseMediaPlayer('''
+<player error="false" state="play">
+  <plugin bandwidth="10000000 bps" id="12" name="Netflix"/>
+  <format audio="eac3" captions="none" container="mp4" drm="widevine" video="hevc"/>
+  <position>61500 ms</position>
+  <duration>5400000 ms</duration>
+  <is_live>false</is_live>
+</player>''', now);
+    expect(a.appId, '12');
+    expect(a.appName, 'Netflix');
+    expect(a.state, PlaybackState.playing);
+    expect(a.position, const Duration(milliseconds: 61500));
+    expect(a.duration, const Duration(minutes: 90));
+    expect(a.hasTimeline, isTrue);
+    expect(
+      a.positionAt(now.add(const Duration(seconds: 2))),
+      const Duration(milliseconds: 63500),
+    );
+
+    expect(
+      RokuAdapter.parseMediaPlayer(
+        '<player error="false" state="pause"><is_live>true</is_live></player>',
+        now,
+      ).hasTimeline,
+      isFalse,
+    );
+    expect(
+      RokuAdapter.parseActiveApp(
+        '<active-app><app id="837" type="appl">YouTube</app></active-app>',
+      ),
+      ('837', 'YouTube'),
+    );
+    expect(
+      RokuAdapter.parseActiveApp('<active-app><app>Roku</app></active-app>'),
+      (null, 'Roku'),
+    );
+  });
+
+  test('polls what is playing and reports it', () async {
+    final polled = RokuAdapter(
+      host: '127.0.0.1',
+      port: tv.port,
+      activityInterval: const Duration(milliseconds: 50),
+    );
+    final activities = <MediaActivity>[];
+    polled.events
+        .where((e) => e is ActivityChanged)
+        .listen((e) => activities.add((e as ActivityChanged).activity));
+    await polled.connect();
+    await Future<void>.delayed(const Duration(milliseconds: 120));
+    expect(activities.last.appName, 'Roku'); // home screen
+    expect(activities.last.hasMedia, isFalse);
+
+    tv.mediaPlayer =
+        '<player error="false" state="play">'
+        '<plugin id="12" name="Netflix"/><position>1000 ms</position>'
+        '<duration>60000 ms</duration><is_live>false</is_live></player>';
+    await Future<void>.delayed(const Duration(milliseconds: 120));
+    expect(activities.last.appName, 'Netflix');
+    expect(activities.last.state, PlaybackState.playing);
+    await polled.dispose();
+    final count = activities.length;
+    await Future<void>.delayed(const Duration(milliseconds: 120));
+    expect(activities.length, count, reason: 'polling stops on dispose');
   });
 }

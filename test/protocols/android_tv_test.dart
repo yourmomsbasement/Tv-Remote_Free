@@ -511,4 +511,22 @@ void main() {
       expect(AtvCrypto.pairingSecret(client: c, server: s, pin: bad), isNull);
     }
   });
+
+  test('reports the foreground app', () async {
+    final adapter = newAdapter();
+    await pairAndConnect(adapter);
+    tv.sendRemote(
+      ProtoWriter()..message(
+        RemoteMsg.imeKeyInject,
+        ProtoWriter()
+          ..message(1, ProtoWriter()..string(12, 'com.netflix.ninja')),
+      ),
+    );
+    await settle();
+    expect(
+      events.whereType<ActivityChanged>().single.activity.appId,
+      'com.netflix.ninja',
+    );
+    await adapter.dispose();
+  });
 }

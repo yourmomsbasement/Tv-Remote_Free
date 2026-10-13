@@ -5,11 +5,15 @@ import '../../core/capabilities/remote_key.dart';
 import '../../ui/components/dpad.dart';
 import '../../ui/components/remote_button.dart';
 import '../settings/app_settings.dart';
+import 'now_playing_card.dart';
 import 'remote_session.dart';
 
 /// The main button layout. Buttons the TV does not support are hidden.
 class RemotePanel extends ConsumerWidget {
-  const RemotePanel({super.key});
+  const RemotePanel({super.key, this.onOpenTouchpad});
+
+  /// Switches to the Touchpad tab (used by the browser hint).
+  final VoidCallback? onOpenTouchpad;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -75,10 +79,22 @@ class RemotePanel extends ConsumerWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final dpadSize = (constraints.maxWidth * 0.68).clamp(200.0, 300.0);
+        final activity = settings.adaptiveLayout ? session.activity : null;
+        // While something plays, its controls move into the card on top.
+        final showNowPlaying =
+            connected && activity != null && activity.hasMedia;
+        final showBrowserHint =
+            connected &&
+            activity != null &&
+            activity.isBrowser &&
+            caps.pointer &&
+            onOpenTouchpad != null;
         return SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Column(
             children: [
+              if (showNowPlaying) NowPlayingCard(activity: activity),
+              if (showBrowserHint) BrowserHint(onOpenTouchpad: onOpenTouchpad!),
               row([
                 ...powerButtons,
                 key(RemoteKey.input, Icons.input, 'Input'),
@@ -99,15 +115,20 @@ class RemotePanel extends ConsumerWidget {
                   onKey: remote.sendKey,
                 ),
               const SizedBox(height: 8),
-              row([
-                key(RemoteKey.replay, Icons.replay, 'Instant replay'),
-                key(RemoteKey.rewind, Icons.fast_rewind, 'Rewind'),
-                key(RemoteKey.playPause, Icons.play_arrow, 'Play / Pause'),
-                key(RemoteKey.play, Icons.play_arrow, 'Play'),
-                key(RemoteKey.pause, Icons.pause, 'Pause'),
-                key(RemoteKey.stop, Icons.stop, 'Stop'),
-                key(RemoteKey.fastForward, Icons.fast_forward, 'Fast forward'),
-              ]),
+              if (!showNowPlaying)
+                row([
+                  key(RemoteKey.replay, Icons.replay, 'Instant replay'),
+                  key(RemoteKey.rewind, Icons.fast_rewind, 'Rewind'),
+                  key(RemoteKey.playPause, Icons.play_arrow, 'Play / Pause'),
+                  key(RemoteKey.play, Icons.play_arrow, 'Play'),
+                  key(RemoteKey.pause, Icons.pause, 'Pause'),
+                  key(RemoteKey.stop, Icons.stop, 'Stop'),
+                  key(
+                    RemoteKey.fastForward,
+                    Icons.fast_forward,
+                    'Fast forward',
+                  ),
+                ]),
               row([
                 key(
                   RemoteKey.volumeDown,

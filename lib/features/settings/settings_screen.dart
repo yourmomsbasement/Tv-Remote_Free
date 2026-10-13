@@ -102,6 +102,15 @@ class SettingsScreen extends ConsumerWidget {
                 update(settings.copyWith(keyboardBatchMs: v.round())),
           ),
           SwitchListTile(
+            title: const Text('Adapt to what is on the TV'),
+            subtitle: const Text(
+              'Shows playback controls while something plays and suggests '
+              'the touchpad in a web browser, on TVs that report this.',
+            ),
+            value: settings.adaptiveLayout,
+            onChanged: (v) => update(settings.copyWith(adaptiveLayout: v)),
+          ),
+          SwitchListTile(
             title: const Text('Remember searches'),
             subtitle: const Text(
               'Shows recent keyboard entries as shortcuts. Kept only on this '

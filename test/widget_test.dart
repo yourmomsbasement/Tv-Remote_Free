@@ -456,4 +456,60 @@ void main() {
 
     await tester.runAsync(() => repo.close());
   });
+
+  testWidgets('shows what is playing, with progress where reported', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      repo = await openTestRepository();
+      await repo.upsertDevice(
+        const DeviceRecord(
+          id: 'fake:1',
+          name: 'Den TV',
+          protocol: 'fake',
+          ipAddress: '10.0.0.5',
+        ),
+      );
+    });
+    await pumpApp(tester);
+    Future<void> settle() async {
+      for (var i = 0; i < 6; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+        );
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+    }
+
+    await tester.tap(find.text('Den TV'));
+    await settle();
+    expect(find.text('Playing'), findsNothing);
+
+    tv.eventController.add(
+      ActivityChanged(
+        MediaActivity(
+          appName: 'Netflix',
+          state: PlaybackState.playing,
+          position: const Duration(minutes: 1),
+          duration: const Duration(minutes: 90),
+          receivedAt: DateTime.now(),
+        ),
+      ),
+    );
+    await settle();
+    expect(find.text('Connected · Netflix'), findsOneWidget);
+    expect(find.text('Playing'), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    expect(find.textContaining('1:0'), findsWidgets);
+
+    tv.eventController.add(
+      ActivityChanged(
+        MediaActivity(appName: 'Home', receivedAt: DateTime.now()),
+      ),
+    );
+    await settle();
+    expect(find.text('Playing'), findsNothing);
+
+    await tester.runAsync(() => repo.close());
+  });
 }

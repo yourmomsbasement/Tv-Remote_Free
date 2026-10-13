@@ -19,6 +19,13 @@ class MockWebOsTv {
   bool userAccepts = true;
   Set<String> knownKeys = {};
   String? keyboardSubscriptionId;
+  final subscriptionIds = <String, String>{};
+
+  void push(String uri, Map<String, Object?> payload) => _send(main!, {
+    'type': 'response',
+    'id': subscriptionIds[uri],
+    'payload': payload,
+  });
 
   Future<void> start() async {
     server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
@@ -92,6 +99,7 @@ class MockWebOsTv {
     final uri = m['uri'] as String;
     if (m['type'] == 'subscribe') {
       if (uri.endsWith('registerRemoteKeyboard')) keyboardSubscriptionId = id;
+      subscriptionIds[uri] = id as String;
       _send(s, {
         'type': 'response',
         'id': id,
@@ -343,5 +351,31 @@ void main() {
         ),
       ),
     );
+  });
+
+  test('reports the foreground app and playback state', () async {
+    await adapter.connect();
+    await settle();
+    tv.push('ssap://com.webos.applicationManager/getForegroundAppInfo', {
+      'appId': 'netflix',
+      'returnValue': true,
+    });
+    tv.push('ssap://com.webos.media/getForegroundAppInfo', {
+      'foregroundAppInfo': [
+        {'appId': 'netflix', 'playState': 'playing'},
+      ],
+    });
+    await settle();
+    final activity = events.whereType<ActivityChanged>().last.activity;
+    expect(activity.appId, 'netflix');
+    expect(activity.appName, 'Netflix'); // title from the app list
+    expect(activity.state, PlaybackState.playing);
+    expect(activity.hasTimeline, isFalse);
+
+    tv.push('ssap://com.webos.media/getForegroundAppInfo', {
+      'foregroundAppInfo': <Object>[],
+    });
+    await settle();
+    expect(events.whereType<ActivityChanged>().last.activity.hasMedia, isFalse);
   });
 }

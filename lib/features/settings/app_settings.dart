@@ -14,6 +14,7 @@ class AppSettings {
     this.themeId = 'builtin.default',
     this.touchpadSensitivity = 1,
     this.rememberSearches = true,
+    this.adaptiveLayout = true,
   });
 
   final ThemeMode themeMode;
@@ -37,6 +38,10 @@ class AppSettings {
   /// Keep a local history of submitted (non-password) searches.
   final bool rememberSearches;
 
+  /// Adapt the remote to what the TV is doing (playback controls while
+  /// playing, touchpad hint in a browser).
+  final bool adaptiveLayout;
+
   AppSettings copyWith({
     ThemeMode? themeMode,
     bool? leftHanded,
@@ -46,6 +51,7 @@ class AppSettings {
     String? themeId,
     double? touchpadSensitivity,
     bool? rememberSearches,
+    bool? adaptiveLayout,
   }) => AppSettings(
     themeMode: themeMode ?? this.themeMode,
     leftHanded: leftHanded ?? this.leftHanded,
@@ -55,6 +61,7 @@ class AppSettings {
     themeId: themeId ?? this.themeId,
     touchpadSensitivity: touchpadSensitivity ?? this.touchpadSensitivity,
     rememberSearches: rememberSearches ?? this.rememberSearches,
+    adaptiveLayout: adaptiveLayout ?? this.adaptiveLayout,
   );
 }
 
@@ -91,6 +98,7 @@ class AppSettingsNotifier extends AsyncNotifier<AppSettings> {
             maxSensitivity,
           ),
       rememberSearches: await get('remember_searches') != 'false',
+      adaptiveLayout: await get('adaptive_layout') != 'false',
     );
   }
 
@@ -113,6 +121,7 @@ class AppSettingsNotifier extends AsyncNotifier<AppSettings> {
       '${settings.touchpadSensitivity}',
     );
     await repo.setSetting('remember_searches', '${settings.rememberSearches}');
+    await repo.setSetting('adaptive_layout', '${settings.adaptiveLayout}');
   }
 }
 
