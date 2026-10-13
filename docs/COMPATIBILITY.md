@@ -3,10 +3,12 @@
 **Status key:** ✅ implemented and covered by mock-server tests · ⚠️ implemented
 with a caveat · ❌ not supported by the protocol · — not yet implemented
 
-> **No row has been verified on a physical TV yet.** The design requires
-> physical-device regression testing before release; until then every entry
-> describes what the adapter implements against the protocol, not a tested
-> model. Contributions of test results (model, firmware, result) are welcome.
+> **Physical-device results so far (October 2026):** a user confirmed the
+> app working with a Roku and an LG webOS TV, including phone-keyboard
+> typing. Models and firmware weren't recorded, and the rest of the matrix
+> is still verified only against mock protocol servers. Android TV hasn't
+> been tried on hardware yet. Contributions of test results (model,
+> firmware, result) are welcome.
 
 | Feature | Roku (ECP) | LG webOS (SSAP) | Android TV / Google TV (Remote v2) | Samsung Tizen |
 |---|---|---|---|---|

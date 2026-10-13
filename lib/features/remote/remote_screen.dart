@@ -25,7 +25,25 @@ class _RemoteScreenState extends ConsumerState<RemoteScreen>
   final _keyboardFocus = FocusNode();
 
   @override
+  void initState() {
+    super.initState();
+    _tabs.animation!.addListener(_hideKeyboardOffTab);
+  }
+
+  /// Dismisses the phone keyboard as soon as the user moves off the
+  /// Keyboard tab, by tapping another tab or swiping past halfway.
+  void _hideKeyboardOffTab() {
+    if (!_keyboardFocus.hasFocus) return;
+    // Programmatic switch *to* the keyboard (auto-open) is still animating.
+    if (_tabs.indexIsChanging && _tabs.index == _keyboardTab) return;
+    if ((_tabs.animation!.value - _keyboardTab).abs() >= 0.5) {
+      _keyboardFocus.unfocus();
+    }
+  }
+
+  @override
   void dispose() {
+    _tabs.animation?.removeListener(_hideKeyboardOffTab);
     _tabs.dispose();
     _keyboardFocus.dispose();
     super.dispose();

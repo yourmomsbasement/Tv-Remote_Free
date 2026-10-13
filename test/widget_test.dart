@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tv_remote_free/app/app.dart';
@@ -95,6 +96,56 @@ void main() {
     await tester.tap(find.text('OK'));
     await tester.pump();
     expect(tv.calls, contains('key:select'));
+
+    await tester.runAsync(() => repo.close());
+  });
+
+  testWidgets('leaving the Keyboard tab hides the phone keyboard', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      repo = await openTestRepository();
+      await repo.upsertDevice(
+        const DeviceRecord(
+          id: 'fake:1',
+          name: 'Bedroom TV',
+          protocol: 'fake',
+          ipAddress: '10.0.0.5',
+        ),
+      );
+    });
+    await pumpApp(tester);
+    await tester.tap(find.text('Bedroom TV'));
+    for (var i = 0; i < 5; i++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 20)),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> openKeyboardTab() async {
+      await tester.tap(find.widgetWithText(Tab, 'Keyboard'));
+      await tester.pumpAndSettle();
+      await tester.showKeyboard(find.byType(TextField));
+      expect(tester.testTextInput.isVisible, isTrue);
+    }
+
+    // Tapping another tab.
+    await openKeyboardTab();
+    await tester.tap(find.widgetWithText(Tab, 'Remote'));
+    await tester.pumpAndSettle();
+    expect(tester.testTextInput.isVisible, isFalse);
+
+    // Swiping to the neighbouring tab.
+    await openKeyboardTab();
+    await tester.fling(find.byType(TabBarView), const Offset(400, 0), 1000);
+    await tester.pumpAndSettle();
+    expect(tester.testTextInput.isVisible, isFalse);
+
+    // The auto-open path (keyboard icon in the app bar) still focuses it.
+    await tester.tap(find.byTooltip('Keyboard'));
+    await tester.pumpAndSettle();
+    expect(tester.testTextInput.isVisible, isTrue);
 
     await tester.runAsync(() => repo.close());
   });
