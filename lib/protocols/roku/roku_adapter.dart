@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
@@ -7,6 +8,7 @@ import 'package:xml/xml.dart';
 import '../../core/adapter/smart_tv_adapter.dart';
 import '../../core/capabilities/device_capabilities.dart';
 import '../../core/capabilities/remote_key.dart';
+import '../../core/connection/tv_image_fetcher.dart';
 import '../../core/errors.dart';
 import 'roku_device_info.dart';
 import 'roku_keys.dart';
@@ -29,6 +31,7 @@ class RokuAdapter implements SmartTVAdapter {
   final Duration timeout;
   final http.Client _client;
   final _events = StreamController<DeviceEvent>.broadcast();
+  late final _images = TvImageFetcher(host);
 
   ConnectionStatus _status = ConnectionStatus.disconnected;
   RokuDeviceInfo? _info;
@@ -161,6 +164,7 @@ class RokuAdapter implements SmartTVAdapter {
   Future<void> dispose() async {
     await disconnect();
     _client.close();
+    _images.close();
     await _events.close();
   }
 
@@ -254,6 +258,10 @@ class RokuAdapter implements SmartTVAdapter {
     _requireConnected();
     await _send('POST', '/launch/${Uri.encodeComponent(appId)}');
   }
+
+  @override
+  Future<Uint8List?> fetchAppIcon(TvApp app) =>
+      _images.fetchFirst([_uri('/query/icon/${Uri.encodeComponent(app.id)}')]);
 
   @override
   Future<void> movePointer(double dx, double dy) async =>

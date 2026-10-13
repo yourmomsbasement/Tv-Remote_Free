@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/platform/haptics.dart';
 import 'app_settings.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -34,10 +35,34 @@ class SettingsScreen extends ConsumerWidget {
             value: settings.leftHanded,
             onChanged: (v) => update(settings.copyWith(leftHanded: v)),
           ),
-          SwitchListTile(
+          ListTile(
             title: const Text('Button vibration'),
-            value: settings.hapticsEnabled,
-            onChanged: (v) => update(settings.copyWith(hapticsEnabled: v)),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: SegmentedButton<HapticStrength>(
+                segments: const [
+                  ButtonSegment(value: HapticStrength.off, label: Text('Off')),
+                  ButtonSegment(
+                    value: HapticStrength.light,
+                    label: Text('Light'),
+                  ),
+                  ButtonSegment(
+                    value: HapticStrength.medium,
+                    label: Text('Medium'),
+                  ),
+                  ButtonSegment(
+                    value: HapticStrength.strong,
+                    label: Text('Strong'),
+                  ),
+                ],
+                selected: {settings.hapticStrength},
+                onSelectionChanged: (s) {
+                  // Preview the new strength.
+                  Haptics.play(HapticEvent.press, s.first);
+                  update(settings.copyWith(hapticStrength: s.first));
+                },
+              ),
+            ),
           ),
           SwitchListTile(
             title: const Text('Open keyboard automatically'),

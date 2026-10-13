@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
+import '../../core/platform/haptics.dart';
 
 import '../../core/capabilities/remote_key.dart';
 import 'remote_button.dart';
@@ -10,13 +11,13 @@ class DPad extends StatelessWidget {
     super.key,
     required this.onKey,
     this.enabled = true,
-    this.haptics = true,
+    this.haptics = HapticStrength.medium,
     this.size = 240,
   });
 
   final void Function(RemoteKey key) onKey;
   final bool enabled;
-  final bool haptics;
+  final HapticStrength haptics;
   final double size;
 
   @override
@@ -70,7 +71,7 @@ class DPad extends StatelessWidget {
               child: FilledButton(
                 onPressed: enabled
                     ? () {
-                        if (haptics) HapticFeedback.selectionClick();
+                        Haptics.play(HapticEvent.press, haptics);
                         onKey(RemoteKey.select);
                       }
                     : null,

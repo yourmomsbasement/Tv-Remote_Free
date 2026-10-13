@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -336,6 +337,13 @@ class RemoteSession extends Notifier<RemoteSessionState> {
     final adapter = _adapter;
     if (adapter == null || !state.capabilities.appList) return const [];
     return adapter.listApps();
+  }
+
+  /// Icon bytes for [app] from the connected TV, or null.
+  Future<Uint8List?> fetchAppIcon(TvApp app) async {
+    final adapter = _adapter;
+    if (adapter == null || !state.isConnected) return null;
+    return adapter.fetchAppIcon(app);
   }
 
   Future<bool> movePointer(double dx, double dy) => _gated(

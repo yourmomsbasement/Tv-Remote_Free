@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:tv_remote_free/core/adapter/smart_tv_adapter.dart';
 import 'package:tv_remote_free/core/capabilities/device_capabilities.dart';
@@ -97,11 +98,19 @@ class FakeAdapter implements SmartTVAdapter {
   @override
   Future<void> submitText() async => calls.add('submit');
 
+  List<TvApp> apps = const [];
+
   @override
-  Future<List<TvApp>> listApps() async => const [];
+  Future<List<TvApp>> listApps() async => apps;
 
   @override
   Future<void> launchApp(String appId) async => calls.add('launch:$appId');
+
+  /// Icon bytes to return per app id.
+  final icons = <String, Uint8List>{};
+
+  @override
+  Future<Uint8List?> fetchAppIcon(TvApp app) async => icons[app.id];
 
   @override
   Future<void> movePointer(double dx, double dy) async =>

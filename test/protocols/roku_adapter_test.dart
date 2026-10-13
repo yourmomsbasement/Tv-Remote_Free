@@ -46,6 +46,9 @@ class MockRoku {
       final res = req.response;
       if (req.uri.path == '/query/device-info') {
         res.write(deviceInfo(isTv: isTv));
+      } else if (req.uri.path == '/query/icon/12') {
+        res.headers.contentType = ContentType('image', 'png');
+        res.add([0x89, 0x50, 0x4E, 0x47]);
       } else if (req.uri.path == '/query/apps') {
         res.write(appsXml);
       } else if (req.method == 'POST' && forbidKeys) {
@@ -208,5 +211,15 @@ void main() {
     expect(device.id, 'roku:X01234567890');
     expect(device.name, 'Living Room');
     expect(device.model, 'TCL Roku TV');
+  });
+
+  test('fetches app icons from the Roku', () async {
+    await adapter.connect();
+    final apps = await adapter.listApps();
+    final netflix = apps.firstWhere((a) => a.id == '12');
+    expect(await adapter.fetchAppIcon(netflix), [0x89, 0x50, 0x4E, 0x47]);
+    // Missing icons come back as null rather than throwing.
+    final youtube = apps.firstWhere((a) => a.id == '837');
+    expect(await adapter.fetchAppIcon(youtube), isNull);
   });
 }

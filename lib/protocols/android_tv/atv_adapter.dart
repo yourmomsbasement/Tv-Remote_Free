@@ -556,6 +556,10 @@ class AndroidTvAdapter implements SmartTVAdapter {
     link.send(RemoteMsg.appLink(appLink));
   }
 
+  /// App links carry no icons; the UI shows lettered tiles.
+  @override
+  Future<Uint8List?> fetchAppIcon(TvApp app) async => null;
+
   @override
   Future<void> movePointer(double dx, double dy) async =>
       throw const TvRemoteException.unsupported('Pointer control');

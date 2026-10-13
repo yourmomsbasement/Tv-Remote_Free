@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import '../../core/adapter/smart_tv_adapter.dart';
 import '../../core/capabilities/device_capabilities.dart';
 import '../../core/capabilities/remote_key.dart';
+import '../../core/connection/tv_image_fetcher.dart';
 import '../../core/errors.dart';
 import 'webos_keys.dart';
 import 'webos_manifest.dart';
@@ -35,6 +37,10 @@ class WebOsAdapter implements SmartTVAdapter {
   final Duration pairingTimeout;
 
   final _events = StreamController<DeviceEvent>.broadcast();
+  late final _images = TvImageFetcher(host);
+
+  /// Icon paths per app from the last app list, largest first.
+  final _iconPaths = <String, List<String>>{};
   final _pending = <String, Completer<Map<String, Object?>>>{};
   final _subscriptions = <String, void Function(Map<String, Object?>)>{};
 
@@ -449,6 +455,7 @@ class WebOsAdapter implements SmartTVAdapter {
 
   Future<void> dispose() async {
     await disconnect();
+    _images.close();
     await _events.close();
   }
 
@@ -516,16 +523,65 @@ class WebOsAdapter implements SmartTVAdapter {
     );
     final points = response['launchPoints'];
     if (points is! List) return const [];
-    return [
-      for (final p in points.whereType<Map>())
-        if (p['id'] is String)
-          TvApp(
-            id: p['id'] as String,
-            name: (p['title'] as String?) ?? p['id'] as String,
-            iconUrl: p['icon'] as String?,
-          ),
-    ];
+    _iconPaths.clear();
+    final apps = <TvApp>[];
+    for (final p in points.whereType<Map>()) {
+      final id = p['id'];
+      if (id is! String) continue;
+      final icons = [
+        for (final key in const ['largeIcon', 'mediumLargeIcon', 'icon'])
+          if (p[key] case final String path when path.isNotEmpty) path,
+      ];
+      _iconPaths[id] = icons;
+      apps.add(
+        TvApp(
+          id: id,
+          name: (p['title'] as String?) ?? id,
+          iconUrl: icons.firstOrNull,
+        ),
+      );
+    }
+    return apps;
   }
+
+  /// Where an icon might be served. Firmware reports absolute URLs on port
+  /// 3000 (HTTP) or 3001 (HTTPS, self-signed), or a path relative to the
+  /// TV. Newer firmware closes port 3000, so each URL is also tried on the
+  /// other port.
+  static List<Uri> iconCandidates(String host, Iterable<String> paths) {
+    final secure = Uri(scheme: 'https', host: host, port: 3001);
+    final plain = Uri(scheme: 'http', host: host, port: 3000);
+    final out = <Uri>[];
+    void add(Uri uri) {
+      if (!out.contains(uri)) out.add(uri);
+    }
+
+    for (final raw in paths) {
+      final parsed = Uri.tryParse(raw);
+      if (parsed == null) continue;
+      if (!parsed.hasScheme) {
+        final path = parsed.path.startsWith('/')
+            ? parsed.path
+            : '/${parsed.path}';
+        add(secure.replace(path: path));
+        add(plain.replace(path: path));
+        continue;
+      }
+      if (parsed.host != host) continue;
+      add(parsed);
+      if (parsed.scheme == 'http') {
+        add(parsed.replace(scheme: 'https', port: 3001));
+      } else if (parsed.scheme == 'https') {
+        add(parsed.replace(scheme: 'http', port: 3000));
+      }
+    }
+    return out;
+  }
+
+  @override
+  Future<Uint8List?> fetchAppIcon(TvApp app) => _images.fetchFirst(
+    iconCandidates(host, _iconPaths[app.id] ?? [?app.iconUrl]),
+  );
 
   @override
   Future<void> launchApp(String appId) async {

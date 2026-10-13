@@ -1,8 +1,12 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/adapter/smart_tv_adapter.dart';
 import '../../core/errors.dart';
+import '../../core/platform/haptics.dart';
+import '../settings/app_settings.dart';
 import '../remote/remote_session.dart';
 import 'app_links.dart';
 
@@ -18,6 +22,20 @@ final tvAppsProvider = FutureProvider.autoDispose<List<TvApp>>((ref) async {
   return [...apps]
     ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 });
+
+/// App icons fetched from the TV, cached for the rest of the session so
+/// switching tabs does not download them again. Keyed by device and app.
+final appIconProvider =
+    FutureProvider.family<
+      Uint8List?,
+      (String deviceId, String appId, String? iconUrl)
+    >((ref, key) async {
+      ref.keepAlive();
+      final (_, appId, iconUrl) = key;
+      return ref
+          .read(remoteSessionProvider.notifier)
+          .fetchAppIcon(TvApp(id: appId, name: '', iconUrl: iconUrl));
+    });
 
 class AppsPanel extends ConsumerWidget {
   const AppsPanel({super.key});
@@ -64,7 +82,10 @@ class AppsPanel extends ConsumerWidget {
           );
         }
         return RefreshIndicator(
-          onRefresh: () => ref.refresh(tvAppsProvider.future),
+          onRefresh: () {
+            ref.invalidate(appIconProvider);
+            return ref.refresh(tvAppsProvider.future);
+          },
           child: _AppGrid(apps: list),
         );
       },
@@ -111,13 +132,11 @@ class _AppTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
-    final fallback = Center(
-      child: Text(
-        app.name.isEmpty ? '?' : app.name.characters.first.toUpperCase(),
-        style: Theme.of(context).textTheme.headlineMedium,
-      ),
-    );
+    final deviceId =
+        ref.watch(remoteSessionProvider.select((s) => s.device?.id)) ?? '';
+    final icon = ref
+        .watch(appIconProvider((deviceId, app.id, app.iconUrl)))
+        .value;
     return Semantics(
       button: true,
       label: 'Open ${app.name}',
@@ -125,22 +144,33 @@ class _AppTile extends ConsumerWidget {
       child: Card(
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () =>
-              ref.read(remoteSessionProvider.notifier).launchApp(app.id),
+          onTap: () {
+            Haptics.play(
+              HapticEvent.press,
+              ref.read(settingsProvider).hapticStrength,
+            );
+            ref.read(remoteSessionProvider.notifier).launchApp(app.id);
+          },
           child: Padding(
             padding: const EdgeInsets.all(8),
             child: Column(
               children: [
                 Expanded(
-                  child: ColoredBox(
-                    color: scheme.surfaceContainerHighest,
-                    child: app.iconUrl == null
-                        ? fallback
-                        : Image.network(
-                            app.iconUrl!,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, _, _) => fallback,
-                          ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: icon == null
+                          ? _LetterTile(name: app.name)
+                          : Image.memory(
+                              icon,
+                              key: ValueKey(app.id),
+                              fit: BoxFit.contain,
+                              gaplessPlayback: true,
+                              errorBuilder: (_, _, _) =>
+                                  _LetterTile(name: app.name),
+                            ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -148,6 +178,38 @@ class _AppTile extends ConsumerWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Placeholder while an icon loads, or when the TV has none: the app's
+/// initial on a colour derived from its name, so tiles stay distinguishable.
+class _LetterTile extends StatelessWidget {
+  const _LetterTile({required this.name});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+    final scheme = ColorScheme.fromSeed(
+      seedColor: HSLColor.fromAHSL(
+        1,
+        (name.hashCode % 360).abs().toDouble(),
+        0.55,
+        0.5,
+      ).toColor(),
+      brightness: brightness,
+    );
+    return ColoredBox(
+      color: scheme.primaryContainer,
+      child: Center(
+        child: Text(
+          name.isEmpty ? '?' : name.characters.first.toUpperCase(),
+          style: Theme.of(context).textTheme.headlineMedium
+              ?.copyWith(color: scheme.onPrimaryContainer),
         ),
       ),
     );

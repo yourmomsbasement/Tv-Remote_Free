@@ -32,7 +32,7 @@ class RemotePanel extends ConsumerWidget {
         label: label,
         repeat: repeat,
         filled: filled,
-        haptics: settings.hapticsEnabled,
+        haptics: settings.hapticStrength,
         onPressed: connected ? () => remote.sendKey(key) : null,
       );
     }
@@ -67,7 +67,7 @@ class RemotePanel extends ConsumerWidget {
         RemoteButton(
           icon: Icons.power,
           label: 'Turn on',
-          haptics: settings.hapticsEnabled,
+          haptics: settings.hapticStrength,
           onPressed: remote.powerOn,
         ),
     ];
@@ -95,7 +95,7 @@ class RemotePanel extends ConsumerWidget {
                 DPad(
                   size: dpadSize,
                   enabled: connected,
-                  haptics: settings.hapticsEnabled,
+                  haptics: settings.hapticStrength,
                   onKey: remote.sendKey,
                 ),
               const SizedBox(height: 8),

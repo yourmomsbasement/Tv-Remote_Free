@@ -1,7 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
+import '../../core/platform/haptics.dart';
 
 /// A remote control button with haptics and optional hold-to-repeat.
 ///
@@ -14,7 +15,7 @@ class RemoteButton extends StatefulWidget {
     required this.label,
     required this.onPressed,
     this.repeat = false,
-    this.haptics = true,
+    this.haptics = HapticStrength.medium,
     this.size = 64,
     this.filled = false,
     this.repeatInterval = const Duration(milliseconds: 150),
@@ -27,7 +28,7 @@ class RemoteButton extends StatefulWidget {
   final String label;
   final VoidCallback? onPressed;
   final bool repeat;
-  final bool haptics;
+  final HapticStrength haptics;
   final double size;
   final bool filled;
   final Duration repeatInterval;
@@ -42,17 +43,35 @@ class _RemoteButtonState extends State<RemoteButton> {
   Timer? _repeat;
   int _count = 0;
 
+  /// Set once a hold has started repeating; the release must not also
+  /// count as a tap.
+  bool _held = false;
+
   void _press() {
-    if (widget.haptics) HapticFeedback.selectionClick();
+    Haptics.play(HapticEvent.press, widget.haptics);
     widget.onPressed?.call();
+  }
+
+  void _onTap() {
+    if (_held) {
+      _held = false;
+      return;
+    }
+    _press();
   }
 
   void _startRepeat() {
     _count = 0;
+    _held = false;
     _delay = Timer(const Duration(milliseconds: 350), () {
+      // A distinct, stronger pulse marks the switch to repeating.
+      _held = true;
+      Haptics.play(HapticEvent.hold, widget.haptics);
+      widget.onPressed?.call();
       _repeat = Timer.periodic(widget.repeatInterval, (t) {
         if (++_count > widget.maxRepeats) return _stopRepeat();
-        _press();
+        Haptics.play(HapticEvent.repeat, widget.haptics);
+        widget.onPressed?.call();
       });
     });
   }
@@ -84,9 +103,15 @@ class _RemoteButtonState extends State<RemoteButton> {
       enabled: enabled,
       label: widget.label,
       excludeSemantics: true,
-      onTap: enabled ? _press : null,
+      onTap: enabled ? _onTap : null,
       child: Tooltip(
         message: widget.label,
+        // Holding a repeating button must not pop a tooltip (and its own
+        // vibration) over the repeats.
+        triggerMode: widget.repeat
+            ? TooltipTriggerMode.manual
+            : TooltipTriggerMode.longPress,
+        enableFeedback: false,
         child: Listener(
           onPointerDown: enabled && widget.repeat
               ? (_) => _startRepeat()
@@ -98,7 +123,7 @@ class _RemoteButtonState extends State<RemoteButton> {
             shape: const CircleBorder(),
             clipBehavior: Clip.antiAlias,
             child: InkWell(
-              onTap: enabled ? _press : null,
+              onTap: enabled ? _onTap : null,
               child: SizedBox.square(
                 dimension: widget.size,
                 child: Icon(

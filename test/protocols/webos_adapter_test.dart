@@ -23,6 +23,12 @@ class MockWebOsTv {
   Future<void> start() async {
     server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     server.listen((req) async {
+      if (req.uri.path.startsWith('/icons/')) {
+        req.response.headers.contentType = ContentType('image', 'png');
+        req.response.add([0x89, 0x50, 0x4E, 0x47]);
+        await req.response.close();
+        return;
+      }
       final socket = await WebSocketTransformer.upgrade(req);
       if (req.uri.path == '/pointer') {
         socket.listen((m) => pointerMessages.add(m as String));
@@ -105,7 +111,12 @@ class MockWebOsTv {
       'ssap://com.webos.applicationManager/listLaunchPoints' => {
         'returnValue': true,
         'launchPoints': [
-          {'id': 'netflix', 'title': 'Netflix', 'icon': 'http://tv/n.png'},
+          {
+            'id': 'netflix',
+            'title': 'Netflix',
+            'icon': 'http://tv/n.png',
+            'largeIcon': 'http://127.0.0.1:$port/icons/netflix.png',
+          },
           {'id': 'youtube.leanback.v4', 'title': 'YouTube'},
         ],
       },
@@ -296,7 +307,11 @@ void main() {
     await adapter.connect();
     final apps = await adapter.listApps();
     expect(apps.map((a) => a.id), ['netflix', 'youtube.leanback.v4']);
-    expect(apps.first.iconUrl, 'http://tv/n.png');
+    // The largest icon is preferred.
+    expect(apps.first.iconUrl, 'http://127.0.0.1:${tv.port}/icons/netflix.png');
+    expect(await adapter.fetchAppIcon(apps.first), [0x89, 0x50, 0x4E, 0x47]);
+    // No reachable icon: null, not an error.
+    expect(await adapter.fetchAppIcon(apps.last), isNull);
   });
 
   test('the TV dropping the socket reports a disconnect', () async {

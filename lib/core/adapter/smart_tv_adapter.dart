@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import '../capabilities/device_capabilities.dart';
 import '../capabilities/remote_key.dart';
@@ -117,6 +118,10 @@ abstract class SmartTVAdapter {
   Future<List<TvApp>> listApps();
 
   Future<void> launchApp(String appId);
+
+  /// Downloads the icon for [app] from the TV, or null if it has none or it
+  /// cannot be fetched. Never throws.
+  Future<Uint8List?> fetchAppIcon(TvApp app);
 
   /// Moves the on-screen pointer by a relative offset in logical pixels.
   Future<void> movePointer(double dx, double dy);

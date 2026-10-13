@@ -1,8 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tv_remote_free/app/app.dart';
 import 'package:tv_remote_free/app/providers.dart';
+import 'package:tv_remote_free/core/adapter/smart_tv_adapter.dart';
 import 'package:tv_remote_free/core/capabilities/device_capabilities.dart';
 import 'package:tv_remote_free/core/capabilities/remote_key.dart';
 import 'package:tv_remote_free/core/discovery/discovery_service.dart';
@@ -147,6 +150,125 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.testTextInput.isVisible, isTrue);
 
+    await tester.runAsync(() => repo.close());
+  });
+
+  testWidgets('the Apps tab shows icons fetched from the TV', (tester) async {
+    tv.capabilities = DeviceCapabilities(
+      keys: tv.capabilities.keys,
+      textInput: true,
+      appList: true,
+      appLaunch: true,
+    );
+    tv.apps = const [
+      TvApp(id: 'yt', name: 'YouTube', iconUrl: 'http://tv/yt.png'),
+      TvApp(id: 'nf', name: 'Netflix'),
+    ];
+    // A 1x1 transparent PNG.
+    tv.icons['yt'] = Uint8List.fromList([
+      0x89,
+      0x50,
+      0x4E,
+      0x47,
+      0x0D,
+      0x0A,
+      0x1A,
+      0x0A,
+      0x00,
+      0x00,
+      0x00,
+      0x0D,
+      0x49,
+      0x48,
+      0x44,
+      0x52,
+      0x00,
+      0x00,
+      0x00,
+      0x01,
+      0x00,
+      0x00,
+      0x00,
+      0x01,
+      0x08,
+      0x06,
+      0x00,
+      0x00,
+      0x00,
+      0x1F,
+      0x15,
+      0xC4,
+      0x89,
+      0x00,
+      0x00,
+      0x00,
+      0x0D,
+      0x49,
+      0x44,
+      0x41,
+      0x54,
+      0x78,
+      0x9C,
+      0x63,
+      0x00,
+      0x01,
+      0x00,
+      0x00,
+      0x05,
+      0x00,
+      0x01,
+      0x0D,
+      0x0A,
+      0x2D,
+      0xB4,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x49,
+      0x45,
+      0x4E,
+      0x44,
+      0xAE,
+      0x42,
+      0x60,
+      0x82,
+    ]);
+    await tester.runAsync(() async {
+      repo = await openTestRepository();
+      await repo.upsertDevice(
+        const DeviceRecord(
+          id: 'fake:1',
+          name: 'Den TV',
+          protocol: 'fake',
+          ipAddress: '10.0.0.5',
+        ),
+      );
+    });
+    await pumpApp(tester);
+    await tester.tap(find.text('Den TV'));
+    for (var i = 0; i < 5; i++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 20)),
+      );
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(find.widgetWithText(Tab, 'Apps'));
+    for (var i = 0; i < 3; i++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 20)),
+      );
+      await tester.pumpAndSettle();
+    }
+    expect(find.text('YouTube'), findsOneWidget);
+    expect(find.text('Netflix'), findsOneWidget);
+    // YouTube has an icon; Netflix falls back to its letter.
+    expect(find.byType(Image), findsOneWidget);
+    expect(find.text('N'), findsOneWidget);
+
+    await tester.tap(find.text('Netflix'));
+    await tester.pump();
+    expect(tv.calls, contains('launch:nf'));
     await tester.runAsync(() => repo.close());
   });
 }

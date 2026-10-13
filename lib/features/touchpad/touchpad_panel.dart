@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/capabilities/remote_key.dart';
+import '../../core/platform/haptics.dart';
 import '../remote/remote_session.dart';
 import '../settings/app_settings.dart';
 
@@ -29,11 +29,8 @@ class _TouchpadPanelState extends ConsumerState<TouchpadPanel> {
 
   RemoteSession get _remote => ref.read(remoteSessionProvider.notifier);
 
-  void _haptic() {
-    if (ref.read(settingsProvider).hapticsEnabled) {
-      HapticFeedback.selectionClick();
-    }
-  }
+  void _haptic([HapticEvent event = HapticEvent.press]) =>
+      Haptics.play(event, ref.read(settingsProvider).hapticStrength);
 
   /// Coalesces pointer moves to roughly one message per frame.
   void _queueMove(Offset delta) {
@@ -58,7 +55,7 @@ class _TouchpadPanelState extends ConsumerState<TouchpadPanel> {
         key = _swipe.dy > 0 ? RemoteKey.down : RemoteKey.up;
         _swipe = Offset(0, _swipe.dy - _swipeStep * _swipe.dy.sign);
       }
-      _haptic();
+      _haptic(HapticEvent.repeat);
       _remote.sendKey(key);
     }
   }
@@ -130,7 +127,10 @@ class _TouchpadPanelState extends ConsumerState<TouchpadPanel> {
               if (session.capabilities.supportsKey(RemoteKey.back))
                 FilledButton.tonalIcon(
                   onPressed: enabled
-                      ? () => _remote.sendKey(RemoteKey.back)
+                      ? () {
+                          _haptic();
+                          _remote.sendKey(RemoteKey.back);
+                        }
                       : null,
                   icon: const Icon(Icons.arrow_back),
                   label: const Text('Back'),
@@ -138,7 +138,10 @@ class _TouchpadPanelState extends ConsumerState<TouchpadPanel> {
               if (session.capabilities.supportsKey(RemoteKey.home))
                 FilledButton.tonalIcon(
                   onPressed: enabled
-                      ? () => _remote.sendKey(RemoteKey.home)
+                      ? () {
+                          _haptic();
+                          _remote.sendKey(RemoteKey.home);
+                        }
                       : null,
                   icon: const Icon(Icons.home_outlined),
                   label: const Text('Home'),

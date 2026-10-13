@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/capabilities/device_capabilities.dart';
+import '../../core/platform/haptics.dart';
 import '../remote/remote_session.dart';
 import '../settings/app_settings.dart';
 import 'keyboard_controller.dart';
@@ -62,6 +63,12 @@ class _KeyboardPanelState extends ConsumerState<KeyboardPanel> {
     }
     _keyboard.updateText(value);
   }
+
+  /// Wraps a button action with press feedback.
+  VoidCallback _withHaptic(void Function() action) => () {
+    Haptics.play(HapticEvent.press, ref.read(settingsProvider).hapticStrength);
+    action();
+  };
 
   Future<void> _paste() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
@@ -168,30 +175,30 @@ class _KeyboardPanelState extends ConsumerState<KeyboardPanel> {
           alignment: WrapAlignment.center,
           children: [
             OutlinedButton.icon(
-              onPressed: available ? _keyboard.backspace : null,
+              onPressed: available ? _withHaptic(_keyboard.backspace) : null,
               icon: const Icon(Icons.backspace_outlined),
               label: const Text('Delete'),
             ),
             OutlinedButton.icon(
-              onPressed: available ? _keyboard.clear : null,
+              onPressed: available ? _withHaptic(_keyboard.clear) : null,
               icon: const Icon(Icons.clear_all),
               label: const Text('Clear'),
             ),
             OutlinedButton.icon(
-              onPressed: available ? _paste : null,
+              onPressed: available ? _withHaptic(_paste) : null,
               icon: const Icon(Icons.content_paste),
               label: const Text('Paste'),
             ),
             if (!live)
               FilledButton.tonalIcon(
                 onPressed: available && _keyboard.hasPendingText
-                    ? _keyboard.flush
+                    ? _withHaptic(_keyboard.flush)
                     : null,
                 icon: const Icon(Icons.send),
                 label: const Text('Send'),
               ),
             FilledButton.icon(
-              onPressed: available ? _keyboard.submit : null,
+              onPressed: available ? _withHaptic(_keyboard.submit) : null,
               icon: const Icon(Icons.keyboard_return),
               label: const Text('Enter'),
             ),
