@@ -343,4 +343,53 @@ void main() {
 
     await tester.runAsync(() => repo.close());
   });
+
+  testWidgets('keyboard screen: history chips and arrow keys', (tester) async {
+    await tester.runAsync(() async {
+      repo = await openTestRepository();
+      await repo.upsertDevice(
+        const DeviceRecord(
+          id: 'fake:1',
+          name: 'Den TV',
+          protocol: 'fake',
+          ipAddress: '10.0.0.5',
+        ),
+      );
+    });
+    await pumpApp(tester);
+    Future<void> settle() async {
+      for (var i = 0; i < 6; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+        );
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+    }
+
+    await tester.tap(find.text('Den TV'));
+    await settle();
+    await tester.tap(find.widgetWithText(Tab, 'Keyboard'));
+    await settle();
+
+    await tester.enterText(find.byType(TextField), 'cats');
+    await settle();
+    await tester.testTextInput.receiveAction(TextInputAction.send);
+    await settle();
+    expect(tv.calls, containsAllInOrder(['text:cats', 'submit']));
+    // The submitted search is offered as a shortcut.
+    expect(find.widgetWithText(InputChip, 'cats'), findsOneWidget);
+
+    tv.calls.clear();
+    await tester.tap(find.widgetWithText(InputChip, 'cats'));
+    await settle();
+    expect(tv.calls, ['text:cats']);
+
+    // Arrow keys work without leaving the keyboard.
+    await tester.tap(find.bySemanticsLabel('Down'));
+    await settle();
+    expect(tv.calls.last, 'key:down');
+    expect(tester.testTextInput.isVisible, isTrue);
+
+    await tester.runAsync(() => repo.close());
+  });
 }

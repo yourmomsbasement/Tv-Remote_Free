@@ -173,6 +173,7 @@ class WebOsAdapter implements SmartTVAdapter {
     textInputStrategy: TextInputStrategy.nativeTextApi,
     textFieldDetection: true,
     pointer: true,
+    scroll: true,
     appLaunch: true,
     appList: true,
     pairingRequired: true,
@@ -594,6 +595,13 @@ class WebOsAdapter implements SmartTVAdapter {
     _requireConnected();
     final pointer = await _pointerSocket();
     pointer.add(webOsMoveMessage(dx.round(), dy.round()));
+  }
+
+  @override
+  Future<void> scroll(double dx, double dy) async {
+    _requireConnected();
+    final pointer = await _pointerSocket();
+    pointer.add(webOsScrollMessage(dx.round(), dy.round()));
   }
 
   @override

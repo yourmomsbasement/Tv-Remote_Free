@@ -7,6 +7,7 @@ import '../../core/capabilities/remote_key.dart';
 import '../../core/platform/haptics.dart';
 import '../remote/remote_session.dart';
 import '../settings/app_settings.dart';
+import 'touchpad_gestures.dart';
 
 /// Touch surface. On TVs with a pointer API it moves the cursor; otherwise
 /// swipes become arrow keys and a tap becomes OK.
@@ -18,13 +19,9 @@ class TouchpadPanel extends ConsumerStatefulWidget {
 }
 
 class _TouchpadPanelState extends ConsumerState<TouchpadPanel> {
-  static const _pointerSpeed = 1.6;
-
-  /// Distance a finger travels per arrow key in swipe mode.
-  static const _swipeStep = 48.0;
-
-  Offset _pending = Offset.zero;
-  Offset _swipe = Offset.zero;
+  TouchpadGestures? _gestures;
+  Offset _pendingMove = Offset.zero;
+  Offset _pendingScroll = Offset.zero;
   Timer? _flushTimer;
 
   RemoteSession get _remote => ref.read(remoteSessionProvider.notifier);
@@ -32,32 +29,48 @@ class _TouchpadPanelState extends ConsumerState<TouchpadPanel> {
   void _haptic([HapticEvent event = HapticEvent.press]) =>
       Haptics.play(event, ref.read(settingsProvider).hapticStrength);
 
-  /// Coalesces pointer moves to roughly one message per frame.
-  void _queueMove(Offset delta) {
-    _pending += delta * _pointerSpeed;
-    _flushTimer ??= Timer(const Duration(milliseconds: 16), () {
-      _flushTimer = null;
-      final move = _pending;
-      _pending = Offset.zero;
-      if (move != Offset.zero) _remote.movePointer(move.dx, move.dy);
-    });
+  void _onStart(ScaleStartDetails _) {
+    final caps = ref.read(remoteSessionProvider).capabilities;
+    _gestures = TouchpadGestures(
+      pointer: caps.pointer,
+      scroll: caps.scroll,
+      sensitivity: ref.read(settingsProvider).touchpadSensitivity,
+    );
   }
 
-  void _swipeBy(Offset delta) {
-    _swipe += delta;
-    while (_swipe.distance >= _swipeStep) {
-      final horizontal = _swipe.dx.abs() > _swipe.dy.abs();
-      final RemoteKey key;
-      if (horizontal) {
-        key = _swipe.dx > 0 ? RemoteKey.right : RemoteKey.left;
-        _swipe = Offset(_swipe.dx - _swipeStep * _swipe.dx.sign, 0);
-      } else {
-        key = _swipe.dy > 0 ? RemoteKey.down : RemoteKey.up;
-        _swipe = Offset(0, _swipe.dy - _swipeStep * _swipe.dy.sign);
+  void _onUpdate(ScaleUpdateDetails details) {
+    final gestures = _gestures;
+    if (gestures == null) return;
+    final actions = gestures.update(
+      fingers: details.pointerCount,
+      delta: details.focalPointDelta,
+    );
+    for (final action in actions) {
+      switch (action) {
+        case PointerMove(:final delta):
+          _pendingMove += delta;
+          _scheduleFlush();
+        case PointerScroll(:final delta):
+          _pendingScroll += delta;
+          _scheduleFlush();
+        case ArrowKey(:final key):
+          _haptic(HapticEvent.repeat);
+          _remote.sendKey(key);
       }
-      _haptic(HapticEvent.repeat);
-      _remote.sendKey(key);
     }
+  }
+
+  /// Coalesces pointer messages to roughly one per frame.
+  void _scheduleFlush() {
+    _flushTimer ??= Timer(const Duration(milliseconds: 16), () {
+      _flushTimer = null;
+      final move = _pendingMove;
+      final scroll = _pendingScroll;
+      _pendingMove = Offset.zero;
+      _pendingScroll = Offset.zero;
+      if (move != Offset.zero) _remote.movePointer(move.dx, move.dy);
+      if (scroll != Offset.zero) _remote.scroll(scroll.dx, scroll.dy);
+    });
   }
 
   @override
@@ -79,9 +92,15 @@ class _TouchpadPanelState extends ConsumerState<TouchpadPanel> {
       child: Column(
         children: [
           Text(
-            pointer
-                ? 'Drag to move the pointer. Tap to click.'
-                : 'Swipe to move. Tap for OK.',
+            [
+              pointer
+                  ? 'Drag to move the pointer. Tap to click.'
+                  : 'Swipe to move. Tap for OK.',
+              session.capabilities.scroll
+                  ? 'Two fingers to scroll.'
+                  : 'Two fingers up/down to step through lists.',
+            ].join(' '),
+            textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 12),
@@ -99,10 +118,8 @@ class _TouchpadPanelState extends ConsumerState<TouchpadPanel> {
                             : _remote.sendKey(RemoteKey.select);
                       }
                     : null,
-                onPanStart: enabled ? (_) => _swipe = Offset.zero : null,
-                onPanUpdate: enabled
-                    ? (d) => pointer ? _queueMove(d.delta) : _swipeBy(d.delta)
-                    : null,
+                onScaleStart: enabled ? _onStart : null,
+                onScaleUpdate: enabled ? _onUpdate : null,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     color: scheme.surfaceContainerHigh,

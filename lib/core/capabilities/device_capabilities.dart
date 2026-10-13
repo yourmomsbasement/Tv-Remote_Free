@@ -26,6 +26,7 @@ class DeviceCapabilities {
     this.textInputStrategy = TextInputStrategy.directionalKeyboard,
     this.textFieldDetection = false,
     this.pointer = false,
+    this.scroll = false,
     this.appLaunch = false,
     this.appList = false,
     this.pairingRequired = false,
@@ -51,6 +52,9 @@ class DeviceCapabilities {
 
   /// Relative pointer/cursor movement is supported.
   final bool pointer;
+
+  /// Pointer-style scrolling (two-finger drag on the touchpad).
+  final bool scroll;
   final bool appLaunch;
   final bool appList;
   final bool pairingRequired;
@@ -78,6 +82,7 @@ class DeviceCapabilities {
     'text_input_strategy': textInputStrategy.name,
     'text_field_detection': textFieldDetection,
     'pointer': pointer,
+    'scroll': scroll,
     'app_launch': appLaunch,
     'app_list': appList,
     'media_controls': mediaControls,

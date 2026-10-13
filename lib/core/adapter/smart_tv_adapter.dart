@@ -129,5 +129,8 @@ abstract class SmartTVAdapter {
   /// Clicks at the current pointer position.
   Future<void> pointerClick();
 
+  /// Scrolls the content under the pointer (two-finger drag).
+  Future<void> scroll(double dx, double dy);
+
   Stream<DeviceEvent> get events;
 }

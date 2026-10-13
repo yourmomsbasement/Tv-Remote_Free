@@ -36,3 +36,5 @@ String webOsMoveMessage(int dx, int dy) =>
     'type:move\ndx:$dx\ndy:$dy\ndown:0\n\n';
 
 const webOsClickMessage = 'type:click\n\n';
+
+String webOsScrollMessage(int dx, int dy) => 'type:scroll\ndx:$dx\ndy:$dy\n\n';

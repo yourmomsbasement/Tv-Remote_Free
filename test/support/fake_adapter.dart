@@ -118,4 +118,8 @@ class FakeAdapter implements SmartTVAdapter {
 
   @override
   Future<void> pointerClick() async => calls.add('click');
+
+  @override
+  Future<void> scroll(double dx, double dy) async =>
+      calls.add('scroll:$dx,$dy');
 }

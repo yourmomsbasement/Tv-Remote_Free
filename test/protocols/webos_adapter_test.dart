@@ -273,12 +273,14 @@ void main() {
     await adapter.sendKey(RemoteKey.select);
     await adapter.movePointer(10.4, -3.6);
     await adapter.pointerClick();
+    await adapter.scroll(0, -12.6);
     await settle();
     expect(tv.pointerMessages, [
       'type:button\nname:UP\n\n',
       'type:button\nname:ENTER\n\n',
       'type:move\ndx:10\ndy:-4\ndown:0\n\n',
       'type:click\n\n',
+      'type:scroll\ndx:0\ndy:-13\n\n',
     ]);
     // The pointer socket is opened once and reused.
     expect(

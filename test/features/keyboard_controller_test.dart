@@ -222,4 +222,16 @@ void main() {
     expect(tv.calls.where((c) => c.startsWith('text:')), isEmpty);
     expect(keyboard.hasPendingText, isFalse);
   });
+
+  test('submit returns the text, except for sensitive fields', () async {
+    keyboard.open();
+    keyboard.updateText('cats');
+    expect(await keyboard.submit(), 'cats');
+    keyboard.onTextFieldFocus(
+      const TextFieldFocusChanged(focused: true, sensitive: true),
+    );
+    keyboard.open();
+    keyboard.updateText('hunter2');
+    expect(await keyboard.submit(), isNull);
+  });
 }

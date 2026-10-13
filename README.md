@@ -32,7 +32,8 @@ tested only against mock protocol servers. See the compatibility matrix.
 | Android TV / Google TV adapter (PIN pairing, TLS client certs, IME text, app links) | ✅ (mock-tested) |
 | mDNS discovery (Android multicast lock included) | ✅ |
 | Keyboard subsystem: diffed edits, batching, state machine, live/manual send | ✅ |
-| Touchpad (pointer on webOS, swipe-to-arrows elsewhere) | ✅ |
+| Touchpad: pointer on webOS, swipe-to-arrows elsewhere, two-finger scroll, adjustable sensitivity | ✅ |
+| Keyboard extras: clipboard paste, local search history (with privacy switch), arrow keys on the keyboard screen | ✅ |
 | App launcher | ✅ |
 | Wake-on-LAN power on, auto-reconnect with backoff | ✅ |
 | Haptics (off/light/medium/strong; distinct tap and hold), left-handed layout, TalkBack/VoiceOver labels | ✅ |

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/platform/haptics.dart';
+import '../keyboard/search_history.dart';
 import '../themes/theme_library.dart';
 import '../themes/themes_screen.dart';
 import 'app_settings.dart';
@@ -99,6 +100,48 @@ class SettingsScreen extends ConsumerWidget {
             label: '${settings.keyboardBatchMs} ms',
             onChanged: (v) =>
                 update(settings.copyWith(keyboardBatchMs: v.round())),
+          ),
+          SwitchListTile(
+            title: const Text('Remember searches'),
+            subtitle: const Text(
+              'Shows recent keyboard entries as shortcuts. Kept only on this '
+              'phone; password fields are never saved. Turning this off '
+              'deletes the history.',
+            ),
+            value: settings.rememberSearches,
+            onChanged: (v) => update(settings.copyWith(rememberSearches: v)),
+          ),
+          if (settings.rememberSearches)
+            ListTile(
+              leading: const Icon(Icons.history_toggle_off),
+              title: const Text('Clear search history'),
+              onTap: () async {
+                await ref.read(searchHistoryProvider.notifier).clear();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Search history cleared')),
+                  );
+                }
+              },
+            ),
+          ListTile(
+            title: const Text('Touchpad sensitivity'),
+            subtitle: Text(
+              '${settings.touchpadSensitivity.toStringAsFixed(1)}× '
+              '(pointer speed and swipe distance)',
+            ),
+          ),
+          Slider(
+            value: settings.touchpadSensitivity,
+            min: AppSettingsNotifier.minSensitivity,
+            max: AppSettingsNotifier.maxSensitivity,
+            divisions: 25,
+            label: '${settings.touchpadSensitivity.toStringAsFixed(1)}×',
+            onChanged: (v) => update(
+              settings.copyWith(
+                touchpadSensitivity: (v * 10).roundToDouble() / 10,
+              ),
+            ),
           ),
           const Divider(),
           const AboutListTile(

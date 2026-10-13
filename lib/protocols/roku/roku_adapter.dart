@@ -270,4 +270,8 @@ class RokuAdapter implements SmartTVAdapter {
   @override
   Future<void> pointerClick() async =>
       throw const TvRemoteException.unsupported('Pointer control');
+
+  @override
+  Future<void> scroll(double dx, double dy) async =>
+      throw const TvRemoteException.unsupported('Scrolling');
 }

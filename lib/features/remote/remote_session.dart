@@ -352,6 +352,9 @@ class RemoteSession extends Notifier<RemoteSessionState> {
     (a) => a.movePointer(dx, dy),
   );
 
+  Future<bool> scroll(double dx, double dy) =>
+      _gated(state.capabilities.scroll, 'Scrolling', (a) => a.scroll(dx, dy));
+
   Future<bool> pointerClick() => _gated(
     state.capabilities.pointer,
     'Pointer control',

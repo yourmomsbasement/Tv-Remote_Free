@@ -166,8 +166,12 @@ class KeyboardController extends ChangeNotifier {
   }
 
   /// Sends pending text, then Enter, then starts a fresh buffer.
-  Future<void> submit() async {
-    if (!isAvailable) return;
+  ///
+  /// Returns the submitted text, or null for sensitive (password) fields so
+  /// callers never store it.
+  Future<String?> submit() async {
+    if (!isAvailable) return null;
+    final submitted = _sensitive ? null : _local;
     await flush();
     await _enqueue(() => _adapter!.submitText());
     _setState(KeyboardState.textSubmitted);
@@ -175,6 +179,7 @@ class KeyboardController extends ChangeNotifier {
     // text right away and start over for the next entry.
     _resetBuffers();
     notifyListeners();
+    return submitted;
   }
 
   /// The user dismissed the keyboard.

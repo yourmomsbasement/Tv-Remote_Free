@@ -3,10 +3,18 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/capabilities/device_capabilities.dart';
+import '../../core/capabilities/remote_key.dart';
 import '../../core/platform/haptics.dart';
+import '../../ui/components/remote_button.dart';
 import '../remote/remote_session.dart';
 import '../settings/app_settings.dart';
 import 'keyboard_controller.dart';
+import 'search_history.dart';
+
+/// TV text fields are single-line: line breaks in pasted text become
+/// spaces rather than reaching the TV as Enter presses.
+String singleLineForTv(String text) =>
+    text.replaceAll(RegExp(r'[ \t]*[\r\n]+[ \t]*'), ' ').trim();
 
 /// Phone-keyboard text entry for the TV's focused text field.
 class KeyboardPanel extends ConsumerStatefulWidget {
@@ -70,9 +78,30 @@ class _KeyboardPanelState extends ConsumerState<KeyboardPanel> {
     action();
   };
 
+  /// Submits and, for non-password text, remembers it in search history.
+  Future<void> _submit() async {
+    final hidden = _hideText;
+    final submitted = await _keyboard.submit();
+    if (submitted != null && !hidden) {
+      await ref.read(searchHistoryProvider.notifier).record(submitted);
+    }
+  }
+
+  /// Types a remembered entry into the TV field.
+  Future<void> _useHistory(String entry) async {
+    if (!_keyboard.isAvailable) return;
+    if (_keyboard.state != KeyboardState.textEditing &&
+        _keyboard.state != KeyboardState.keyboardActive &&
+        _keyboard.state != KeyboardState.textFieldDetected) {
+      _keyboard.open();
+    }
+    _keyboard.updateText(entry);
+    await _keyboard.flush();
+  }
+
   Future<void> _paste() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
-    final pasted = data?.text;
+    final pasted = data?.text == null ? null : singleLineForTv(data!.text!);
     if (pasted == null || pasted.isEmpty) return;
     final value = _text.text + pasted;
     _text.value = TextEditingValue(
@@ -104,6 +133,7 @@ class _KeyboardPanelState extends ConsumerState<KeyboardPanel> {
     final available = session.isConnected && _keyboard.isAvailable;
     final live = _keyboard.mode == KeyboardSyncMode.live;
     final hidden = _hideText || _keyboard.sensitive;
+    final history = ref.watch(searchHistoryProvider).value ?? const [];
     final appendOnly =
         session.capabilities.textInputStrategy ==
         TextInputStrategy.characterEvents;
@@ -141,7 +171,7 @@ class _KeyboardPanelState extends ConsumerState<KeyboardPanel> {
           textInputAction: TextInputAction.send,
           onChanged: _onChanged,
           onSubmitted: (_) {
-            _keyboard.submit();
+            _submit();
             _focus.requestFocus();
           },
           decoration: InputDecoration(
@@ -167,6 +197,32 @@ class _KeyboardPanelState extends ConsumerState<KeyboardPanel> {
                 'The TV text may not match the phone. Use Clear to reset.',
             style: TextStyle(color: scheme.error),
           ),
+        ],
+        if (!hidden && history.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Text('Recent', style: Theme.of(context).textTheme.labelLarge),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final entry in history.take(8))
+                InputChip(
+                  label: Text(entry, overflow: TextOverflow.ellipsis),
+                  tooltip: 'Type "$entry" on the TV',
+                  onPressed: available
+                      ? _withHaptic(() => _useHistory(entry))
+                      : null,
+                  deleteButtonTooltipMessage: 'Remove from history',
+                  onDeleted: () =>
+                      ref.read(searchHistoryProvider.notifier).remove(entry),
+                ),
+            ],
+          ),
+        ],
+        if (session.capabilities.navigation) ...[
+          const SizedBox(height: 12),
+          _ArrowRow(enabled: session.isConnected),
         ],
         const SizedBox(height: 16),
         Wrap(
@@ -198,7 +254,7 @@ class _KeyboardPanelState extends ConsumerState<KeyboardPanel> {
                 label: const Text('Send'),
               ),
             FilledButton.icon(
-              onPressed: available ? _withHaptic(_keyboard.submit) : null,
+              onPressed: available ? _withHaptic(_submit) : null,
               icon: const Icon(Icons.keyboard_return),
               label: const Text('Enter'),
             ),
@@ -223,6 +279,46 @@ class _KeyboardPanelState extends ConsumerState<KeyboardPanel> {
               ? (s) => setState(() => _keyboard.mode = s.first)
               : null,
         ),
+      ],
+    );
+  }
+}
+
+/// Arrow keys on the keyboard screen, so moving between TV fields or
+/// results does not mean leaving the keyboard.
+class _ArrowRow extends ConsumerWidget {
+  const _ArrowRow({required this.enabled});
+
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final remote = ref.read(remoteSessionProvider.notifier);
+    final haptics = ref.watch(settingsProvider.select((s) => s.hapticStrength));
+    final caps = ref.watch(remoteSessionProvider.select((s) => s.capabilities));
+    Widget key(
+      RemoteKey k,
+      IconData icon,
+      String label, {
+      bool repeat = true,
+    }) => RemoteButton(
+      icon: icon,
+      label: label,
+      size: 44,
+      repeat: repeat,
+      haptics: haptics,
+      onPressed: enabled ? () => remote.sendKey(k) : null,
+    );
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        if (caps.supportsKey(RemoteKey.back))
+          key(RemoteKey.back, Icons.arrow_back, 'Back', repeat: false),
+        key(RemoteKey.left, Icons.keyboard_arrow_left, 'Left'),
+        key(RemoteKey.up, Icons.keyboard_arrow_up, 'Up'),
+        key(RemoteKey.down, Icons.keyboard_arrow_down, 'Down'),
+        key(RemoteKey.right, Icons.keyboard_arrow_right, 'Right'),
+        key(RemoteKey.select, Icons.radio_button_checked, 'OK', repeat: false),
       ],
     );
   }

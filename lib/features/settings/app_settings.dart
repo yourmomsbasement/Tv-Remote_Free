@@ -12,6 +12,8 @@ class AppSettings {
     this.keyboardAutoOpen = true,
     this.keyboardBatchMs = 40,
     this.themeId = 'builtin.default',
+    this.touchpadSensitivity = 1,
+    this.rememberSearches = true,
   });
 
   final ThemeMode themeMode;
@@ -29,6 +31,12 @@ class AppSettings {
   /// The selected remote theme (see features/themes).
   final String themeId;
 
+  /// Touchpad speed multiplier, 0.5–3.
+  final double touchpadSensitivity;
+
+  /// Keep a local history of submitted (non-password) searches.
+  final bool rememberSearches;
+
   AppSettings copyWith({
     ThemeMode? themeMode,
     bool? leftHanded,
@@ -36,6 +44,8 @@ class AppSettings {
     bool? keyboardAutoOpen,
     int? keyboardBatchMs,
     String? themeId,
+    double? touchpadSensitivity,
+    bool? rememberSearches,
   }) => AppSettings(
     themeMode: themeMode ?? this.themeMode,
     leftHanded: leftHanded ?? this.leftHanded,
@@ -43,6 +53,8 @@ class AppSettings {
     keyboardAutoOpen: keyboardAutoOpen ?? this.keyboardAutoOpen,
     keyboardBatchMs: keyboardBatchMs ?? this.keyboardBatchMs,
     themeId: themeId ?? this.themeId,
+    touchpadSensitivity: touchpadSensitivity ?? this.touchpadSensitivity,
+    rememberSearches: rememberSearches ?? this.rememberSearches,
   );
 }
 
@@ -50,6 +62,8 @@ class AppSettings {
 class AppSettingsNotifier extends AsyncNotifier<AppSettings> {
   static const minBatchMs = 20;
   static const maxBatchMs = 75;
+  static const minSensitivity = 0.5;
+  static const maxSensitivity = 3.0;
 
   @override
   Future<AppSettings> build() async {
@@ -71,6 +85,12 @@ class AppSettingsNotifier extends AsyncNotifier<AppSettings> {
         maxBatchMs,
       ),
       themeId: await get('theme_id') ?? defaults.themeId,
+      touchpadSensitivity:
+          (double.tryParse(await get('touchpad_sensitivity') ?? '') ?? 1).clamp(
+            minSensitivity,
+            maxSensitivity,
+          ),
+      rememberSearches: await get('remember_searches') != 'false',
     );
   }
 
@@ -88,6 +108,11 @@ class AppSettingsNotifier extends AsyncNotifier<AppSettings> {
     await repo.setSetting('keyboard_auto_open', '${settings.keyboardAutoOpen}');
     await repo.setSetting('keyboard_batch_ms', '${settings.keyboardBatchMs}');
     await repo.setSetting('theme_id', settings.themeId);
+    await repo.setSetting(
+      'touchpad_sensitivity',
+      '${settings.touchpadSensitivity}',
+    );
+    await repo.setSetting('remember_searches', '${settings.rememberSearches}');
   }
 }
 
